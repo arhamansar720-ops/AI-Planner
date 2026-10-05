@@ -1,0 +1,289 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* -------------------------------------------------------------------------- */
+/* Design tokens                                                              */
+/* -------------------------------------------------------------------------- */
+
+:root {
+  --bg: #f6f6f4;
+  --bg-tint: #efefec;
+  --surface: #ffffff;
+  --surface-2: #f3f3f1;
+  --surface-3: #eaeae7;
+  --fg: #121214;
+  --fg-muted: #5c5c63;
+  --fg-subtle: #93939a;
+  --border: rgb(18 18 20 / 0.075);
+  --border-strong: rgb(18 18 20 / 0.13);
+
+  --accent: #3657d1;
+  --accent-hover: #2d4bbd;
+  --accent-fg: #ffffff;
+  --accent-soft: rgb(54 87 209 / 0.08);
+  --accent-line: rgb(54 87 209 / 0.38);
+  --ring: rgb(54 87 209 / 0.32);
+
+  --success: #1d8f5c;
+  --success-soft: rgb(29 143 92 / 0.1);
+  --warning: #b7750c;
+  --warning-soft: rgb(183 117 12 / 0.1);
+  --danger: #cc3d3d;
+  --danger-soft: rgb(204 61 61 / 0.09);
+
+  --glass: rgb(255 255 255 / 0.66);
+  --glass-strong: rgb(255 255 255 / 0.82);
+  --glass-edge: rgb(18 18 20 / 0.07);
+  --glass-highlight: rgb(255 255 255 / 0.9);
+
+  --shadow-xs: 0 1px 2px rgb(18 18 20 / 0.04);
+  --shadow-sm: 0 1px 2px rgb(18 18 20 / 0.04), 0 2px 8px -2px rgb(18 18 20 / 0.06);
+  --shadow-md: 0 1px 2px rgb(18 18 20 / 0.04), 0 8px 24px -8px rgb(18 18 20 / 0.1);
+  --shadow-lg: 0 2px 4px rgb(18 18 20 / 0.03), 0 24px 64px -24px rgb(18 18 20 / 0.18);
+  --shadow-glass: 0 1px 0 var(--glass-highlight) inset, 0 40px 100px -40px rgb(18 18 20 / 0.22),
+    0 2px 6px rgb(18 18 20 / 0.04);
+
+  --grid-line: rgb(18 18 20 / 0.035);
+  --ambient: rgb(54 87 209 / 0.07);
+
+  color-scheme: light;
+}
+
+.dark {
+  --bg: #0b0b0d;
+  --bg-tint: #101013;
+  --surface: #131316;
+  --surface-2: #19191d;
+  --surface-3: #212126;
+  --fg: #ececef;
+  --fg-muted: #a0a0a8;
+  --fg-subtle: #6d6d75;
+  --border: rgb(255 255 255 / 0.07);
+  --border-strong: rgb(255 255 255 / 0.12);
+
+  --accent: #7d95ff;
+  --accent-hover: #93a8ff;
+  --accent-fg: #0b0b0d;
+  --accent-soft: rgb(125 149 255 / 0.1);
+  --accent-line: rgb(125 149 255 / 0.42);
+  --ring: rgb(125 149 255 / 0.38);
+
+  --success: #4cc38a;
+  --success-soft: rgb(76 195 138 / 0.12);
+  --warning: #e3a33b;
+  --warning-soft: rgb(227 163 59 / 0.12);
+  --danger: #f07171;
+  --danger-soft: rgb(240 113 113 / 0.12);
+
+  --glass: rgb(24 24 28 / 0.62);
+  --glass-strong: rgb(24 24 28 / 0.84);
+  --glass-edge: rgb(255 255 255 / 0.08);
+  --glass-highlight: rgb(255 255 255 / 0.06);
+
+  --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.3);
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3), 0 2px 8px -2px rgb(0 0 0 / 0.3);
+  --shadow-md: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -8px rgb(0 0 0 / 0.45);
+  --shadow-lg: 0 2px 4px rgb(0 0 0 / 0.3), 0 24px 64px -24px rgb(0 0 0 / 0.6);
+  --shadow-glass: 0 1px 0 var(--glass-highlight) inset, 0 40px 100px -40px rgb(0 0 0 / 0.7),
+    0 2px 6px rgb(0 0 0 / 0.3);
+
+  --grid-line: rgb(255 255 255 / 0.03);
+  --ambient: rgb(125 149 255 / 0.08);
+
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-tint: var(--bg-tint);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-line: var(--accent-line);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-glass: var(--glass);
+  --color-glass-strong: var(--glass-strong);
+  --color-glass-edge: var(--glass-edge);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  --shadow-xs: var(--shadow-xs);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-glass: var(--shadow-glass);
+
+  --text-2xs: 11px;
+  --text-2xs--line-height: 16px;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Base                                                                       */
+/* -------------------------------------------------------------------------- */
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  ::selection {
+    background: var(--accent-soft);
+    color: var(--fg);
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    opacity: 0.45;
+    cursor: pointer;
+  }
+  .dark input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Utilities                                                                  */
+/* -------------------------------------------------------------------------- */
+
+@utility glass {
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(28px) saturate(150%);
+  backdrop-filter: blur(28px) saturate(150%);
+  border: 1px solid var(--glass-edge);
+  box-shadow: var(--shadow-glass);
+}
+
+@utility text-balance {
+  text-wrap: balance;
+}
+
+@utility scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Very quiet structural texture behind the app. */
+.app-backdrop {
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -10%, var(--ambient), transparent 70%),
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 100% 100%, 56px 56px, 56px 56px;
+  background-position: center top, center top, center top;
+}
+.app-backdrop-mask {
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, black 30%, transparent 80%);
+}
+
+/* Shimmer for skeleton text inside the planning canvas. */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.shimmer {
+  background: linear-gradient(90deg, var(--surface-3) 0%, var(--surface-2) 50%, var(--surface-3) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.8s linear infinite;
+}
+
+/* Dependency "flow" on canvas connectors. */
+@keyframes dash-flow {
+  to { stroke-dashoffset: -24; }
+}
+.flow-line {
+  stroke-dasharray: 3 9;
+  animation: dash-flow 1.6s linear infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(0.72); opacity: 0.55; }
+}
+.pulse-dot {
+  animation: pulse-dot 1.4s ease-in-out infinite;
+}
+@keyframes ring-out {
+  0% { transform: scale(1); opacity: 0.5; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+.ring-out {
+  animation: ring-out 1.6s var(--ease-out-quint) infinite;
+}
+
+/* Radix overlays */
+@keyframes overlay-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes overlay-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes sheet-in-right { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes sheet-out-right { from { transform: none; opacity: 1; } to { transform: translateX(24px); opacity: 0; } }
+@keyframes sheet-in-left { from { transform: translateX(-24px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes sheet-out-left { from { transform: none; opacity: 1; } to { transform: translateX(-24px); opacity: 0; } }
+@keyframes sheet-in-bottom { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes sheet-out-bottom { from { transform: none; opacity: 1; } to { transform: translateY(24px); opacity: 0; } }
+@keyframes pop-in { from { transform: translateY(-4px) scale(0.98); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes pop-out { from { transform: none; opacity: 1; } to { transform: translateY(-4px) scale(0.98); opacity: 0; } }
+@keyframes dialog-in { from { transform: translate(-50%, -48%) scale(0.98); opacity: 0; } to { transform: translate(-50%, -50%); opacity: 1; } }
+@keyframes dialog-out { from { transform: translate(-50%, -50%); opacity: 1; } to { transform: translate(-50%, -48%) scale(0.98); opacity: 0; } }
+
+.anim-overlay[data-state="open"] { animation: overlay-in 200ms var(--ease-out-quint); }
+.anim-overlay[data-state="closed"] { animation: overlay-out 160ms ease-in; }
+.anim-sheet-right[data-state="open"] { animation: sheet-in-right 320ms var(--ease-out-expo); }
+.anim-sheet-right[data-state="closed"] { animation: sheet-out-right 180ms ease-in; }
+.anim-sheet-left[data-state="open"] { animation: sheet-in-left 320ms var(--ease-out-expo); }
+.anim-sheet-left[data-state="closed"] { animation: sheet-out-left 180ms ease-in; }
+.anim-sheet-bottom[data-state="open"] { animation: sheet-in-bottom 320ms var(--ease-out-expo); }
+.anim-sheet-bottom[data-state="closed"] { animation: sheet-out-bottom 180ms ease-in; }
+.anim-pop[data-state="open"] { animation: pop-in 180ms var(--ease-out-quint); }
+.anim-pop[data-state="closed"] { animation: pop-out 120ms ease-in; }
+.anim-dialog[data-state="open"] { animation: dialog-in 240ms var(--ease-out-expo); }
+.anim-dialog[data-state="closed"] { animation: dialog-out 150ms ease-in; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+  .flow-line, .pulse-dot, .ring-out, .shimmer { animation: none !important; }
+}
