@@ -86,9 +86,11 @@ Supabase Postgres with RLS on every table (`user_id = auth.uid()`). Tables: `pro
 ## Project structure
 
 ```
-app/                  routes: /, /plan/[id], /history, /settings, /login, api/*
+app/                  routes: /, /landing, /plan/[id], /history, /settings, /login, api/*
 components/
   home/               heading, prompt composer, context and model menus, chips
+  landing/            marketing page sections and the replayed demo
+  reactbits/          vendored React Bits animation components
   generation/         planning canvas, plan graph, stage list, status, SSE hook
   planner/            orchestrator, workspace shell, overview, plan store
   tasks/ timeline/ calendar/ ai/ history/ settings/
@@ -108,6 +110,10 @@ tests/                node:test unit tests
 Tokens are in `app/globals.css`: near-black text on an off-white base, one restrained cobalt accent, hairline borders and a dark theme with the same accent. Geist Sans and Geist Mono. Motion primitives (`lib/motion.ts`) keep springs and easing consistent. With `prefers-reduced-motion`, Framer Motion turns movement into fades and CSS loops stop.
 
 To rename the product, edit `product` in `lib/config.ts`.
+
+## Landing page
+
+`/landing` is the marketing page (`components/landing/`). Its live demo is the real planning canvas replaying a streamed plan (`components/landing/demo-plan.ts`) through the real `PlanAssembler`. The final call to action hands the typed goal to the app as a draft. Animations in `components/reactbits/` come from [React Bits](https://github.com/DavidHDev/react-bits) (MIT + Commons Clause, see the license file there). The pricing tiers are placeholders: no payment provider is connected.
 
 ## Claude test bench
 
