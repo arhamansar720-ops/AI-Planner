@@ -11,7 +11,9 @@ import { PromptComposer, type ComposerHandle } from "@/components/home/prompt-co
 import { PromptHeading } from "@/components/home/prompt-heading";
 import { SuggestionChips } from "@/components/home/suggestion-chips";
 import { NEW_PLAN_EVENT, TopNav, type NavUser } from "@/components/shell/top-nav";
-import { resolveModel } from "@/lib/config";
+import type { PlannerPreferences } from "@/lib/ai/prompts";
+import { getEngineState } from "@/lib/ai/local/engine";
+import { LOCAL_MODEL } from "@/lib/config";
 import { ease } from "@/lib/motion";
 import { localToday } from "@/lib/planning/dates";
 import type { ContextItemInput } from "@/lib/validation/api";
@@ -29,12 +31,12 @@ const DRAFT_KEY = "forma:draft";
 export function PlannerExperience({
   user,
   initialHeading,
-  defaultModel,
+  preferences,
   recentPlans,
 }: {
   user: NavUser;
   initialHeading: number;
-  defaultModel: string;
+  preferences: PlannerPreferences;
   recentPlans: PlanSummary[];
 }) {
   const router = useRouter();
@@ -43,8 +45,8 @@ export function PlannerExperience({
   const [heading, setHeading] = useState(initialHeading);
   const [prompt, setPrompt] = useState("");
   const [context, setContext] = useState<ContextItemInput[]>([]);
-  const [model, setModel] = useState(defaultModel);
   const composerRef = useRef<ComposerHandle>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const saveDraft = useCallback(() => {
     try {
@@ -136,20 +138,15 @@ export function PlannerExperience({
       goToLogin();
       return;
     }
+    const engine = getEngineState();
+    if (engine.status === "unsupported") {
+      setNotice(`${engine.reason} Forma’s AI runs on your device, so it needs WebGPU.`);
+      return;
+    }
+    setNotice(null);
     saveDraft();
     setStage("generating");
-    void generation.start({ prompt: text, context, model, today: localToday() });
-  };
-
-  const changeModel = (id: string) => {
-    setModel(id);
-    if (user) {
-      void fetch("/api/preferences", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: id }),
-      });
-    }
+    void generation.start({ prompt: text, context, preferences, today: localToday() });
   };
 
   const applySuggestion = (starter: string) => {
@@ -215,10 +212,14 @@ export function PlannerExperience({
                 onSubmit={submit}
                 context={context}
                 onContextChange={setContext}
-                model={model}
-                onModelChange={changeModel}
                 recentPlans={recentPlans}
               />
+              {notice && (
+                <p role="alert" className="-mt-3 flex max-w-[720px] items-start gap-2 text-center text-[13px] text-fg-muted">
+                  <span className="mt-[7px] size-1.5 shrink-0 rounded-full bg-warning" aria-hidden />
+                  {notice}
+                </p>
+              )}
               <SuggestionChips onPick={applySuggestion} />
             </motion.main>
           )}
@@ -244,7 +245,7 @@ export function PlannerExperience({
                 />
                 <PlanningCanvas
                   state={state}
-                  modelLabel={resolveModel(model).label}
+                  modelLabel={`${LOCAL_MODEL.label} · on device`}
                   onRetry={() => state.request && generation.start(state.request)}
                   onEdit={() => reset({ keepPrompt: true })}
                   onClarify={(answer) =>

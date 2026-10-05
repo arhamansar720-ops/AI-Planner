@@ -12,8 +12,8 @@ type PlanStore = {
   plan: Plan;
   /** Apply a change optimistically and persist it in the background. */
   dispatch: (mutation: Mutation) => void;
-  /** Replace the plan with a server-produced version (assistant edits). */
-  replace: (plan: Plan, options?: { undoable?: boolean; message?: string }) => void;
+  /** Apply and save several mutations at once (assistant edits), with Undo. */
+  applyBatch: (mutations: Mutation[], options?: { message?: string }) => void;
   view: WorkspaceView;
   setView: (view: WorkspaceView) => void;
   openTaskId: string | null;
@@ -40,7 +40,7 @@ export function PlanStoreProvider({
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [assistantDraft, setAssistantDraft] = useState<PlanStore["assistantDraft"]>(null);
   const [assistantOpen, setAssistantOpen] = useState(false);
-  // Source of truth for synchronous reads; only dispatch/replace change the plan.
+  // Source of truth for synchronous reads; only dispatch/applyBatch change the plan.
   const planRef = useRef(initialPlan);
   const saveQueue = useRef<Promise<void>>(Promise.resolve());
   const toast = useToast();
@@ -79,25 +79,35 @@ export function PlanStoreProvider({
     [persist, toast],
   );
 
-  const replace = useCallback<PlanStore["replace"]>(
-    (next, options) => {
+  const applyBatch = useCallback<PlanStore["applyBatch"]>(
+    (mutations, options) => {
       const previous = planRef.current;
+      let next = previous;
+      const applied: Mutation[] = [];
+      for (const m of mutations) {
+        try {
+          next = applyMutation(next, m);
+          applied.push(m);
+        } catch {
+          // The model referenced something that no longer exists; skip it.
+        }
+      }
+      if (!applied.length) return;
       planRef.current = next;
       setPlan(next);
-      if (options?.undoable) {
-        toast({
-          message: options.message ?? "Plan updated",
-          action: {
-            label: "Undo",
-            onClick: () => {
-              const restored = { ...previous, updatedAt: new Date().toISOString() };
-              planRef.current = restored;
-              setPlan(restored);
-              persist(previous.id, [{ type: "plan.restore", plan: previous }]);
-            },
+      persist(next.id, applied);
+      toast({
+        message: options?.message ?? "Plan updated",
+        action: {
+          label: "Undo",
+          onClick: () => {
+            const restored = { ...previous, updatedAt: new Date().toISOString() };
+            planRef.current = restored;
+            setPlan(restored);
+            persist(previous.id, [{ type: "plan.restore", plan: previous }]);
           },
-        });
-      }
+        },
+      });
     },
     [persist, toast],
   );
@@ -119,7 +129,7 @@ export function PlanStoreProvider({
     () => ({
       plan,
       dispatch,
-      replace,
+      applyBatch,
       view,
       setView,
       openTaskId,
@@ -129,7 +139,7 @@ export function PlanStoreProvider({
       assistantOpen,
       setAssistantOpen,
     }),
-    [plan, dispatch, replace, view, setView, openTaskId, assistantDraft, askAssistant, assistantOpen],
+    [plan, dispatch, applyBatch, view, setView, openTaskId, assistantDraft, askAssistant, assistantOpen],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

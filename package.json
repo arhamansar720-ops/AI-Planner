@@ -12,7 +12,7 @@
     "bench": "mkdir -p bench/dist && node bench/build.mjs bench/dist/forma-bench.html"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.131.0",
+    "@mlc-ai/web-llm": "0.2.85",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.117.2",
     "class-variance-authority": "^0.7.1",

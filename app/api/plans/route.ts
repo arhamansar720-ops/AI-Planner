@@ -1,11 +1,52 @@
 import { NextResponse } from "next/server";
-import { listPlans } from "@/lib/db/plans";
-import { jsonError, requireUser } from "@/lib/utils/api";
+import { listPlans, savePlan } from "@/lib/db/plans";
+import { normalizePlan } from "@/lib/planning/schedule";
+import { jsonError, readJson, requireUser } from "@/lib/utils/api";
+import { CreatePlanRequestSchema } from "@/lib/validation/api";
+import { PlanSchema } from "@/lib/validation/plan";
+
+/** Plans a single account may create per rolling hour. */
+const HOURLY_LIMIT = 30;
 
 export async function GET() {
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   return NextResponse.json({ plans: await listPlans(auth.supabase) });
+}
+
+/**
+ * Save a plan generated in the browser. The server never trusts the client's
+ * shape: it re-normalizes (dates, schedule, ordering), validates and assigns
+ * a fresh id before writing.
+ */
+export async function POST(request: Request) {
+  const auth = await requireUser();
+  if ("error" in auth) return auth.error;
+  const body = await readJson(request, CreatePlanRequestSchema);
+  if ("error" in body) return body.error;
+  const { supabase } = auth;
+
+  const since = new Date(Date.now() - 3_600_000).toISOString();
+  const { count } = await supabase
+    .from("plans")
+    .select("id", { count: "exact", head: true })
+    .gte("created_at", since);
+  if ((count ?? 0) >= HOURLY_LIMIT) {
+    return jsonError(429, "You’ve made a lot of plans in the last hour. Try again a little later.");
+  }
+
+  const now = new Date().toISOString();
+  const parsed = PlanSchema.safeParse(
+    normalizePlan({ ...body.data.plan, id: crypto.randomUUID(), status: "active", createdAt: now, updatedAt: now }),
+  );
+  if (!parsed.success) return jsonError(400, "Invalid plan");
+  try {
+    await savePlan(supabase, parsed.data);
+    return NextResponse.json({ plan: parsed.data }, { status: 201 });
+  } catch (error) {
+    console.error("[plans] create failed", { error });
+    return jsonError(500, "Could not save the plan");
+  }
 }
 
 /** Delete every plan the user owns (Settings → Data). */

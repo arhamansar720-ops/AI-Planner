@@ -47,3 +47,9 @@ test("assistant responses require every operation field", () => {
   assert.equal(ok.success, true);
   assert.equal(AssistantResponse.safeParse({ reply: "x", operations: [{ type: "set_daily_minutes" }] }).success, false);
 });
+
+test("the worker's CDN WebLLM version matches the installed package", async () => {
+  const { WEBLLM_VERSION } = await import("@/lib/ai/local/engine");
+  const pkg = JSON.parse(readFileSync(new URL("../node_modules/@mlc-ai/web-llm/package.json", import.meta.url), "utf8"));
+  assert.equal(WEBLLM_VERSION, pkg.version);
+});

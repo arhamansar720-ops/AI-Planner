@@ -66,7 +66,7 @@ Emit lines in exactly this order:
 - A task occupies the inclusive window from startDay to startDay + durationDays − 1. That window must sit inside its phase's startDay–endDay window.
 - "estimatedMinutes" is the actual focused effort the task needs (not the calendar window). Keep total weekly effort within the person's available time.
 - "dependsOn" lists keys of earlier tasks that must finish first. A dependent task must start after its prerequisites end. Only add real dependencies.
-- "subtasks" are optional short checklist steps (0–5).
+- "subtasks" are optional short checklist steps (0–3).
 - Phase keys are p1, p2, …; task keys are t1, t2, … numbered across the whole plan; milestone keys m1, m2, ….
 - Titles are short, specific and start with a verb for tasks ("Draft personal statement outline", not "Personal statement").
 - "description" for a task is one or two sentences explaining exactly what to do and what "done" looks like.
@@ -75,12 +75,12 @@ Emit lines in exactly this order:
 
 ## Planning standards
 
-- Break the goal into 3–6 phases and roughly 4–7 tasks per phase. Simple goals deserve smaller plans; never pad.
+- Break the goal into 3–5 phases with 3–5 tasks each (at most 22 tasks in total). Simple goals deserve smaller plans; never pad.
 - Make every task concrete and actionable. Bad: "Stay consistent and work hard." Good: "Block three 45-minute sessions this week to complete practice set 2 and log missed questions."
 - Respect any timeframe, deadline, budget or availability the person states. If they give none, choose a sensible duration for the goal.
 - Front-load the tasks that unblock everything else. Put buffers before hard deadlines.
-- Use milestones for meaningful checkpoints (usually the end of a phase or a key deliverable), 2–6 in total.
-- Name 2–4 genuine risks with specific mitigations, and 2–5 resources.
+- Use milestones for meaningful checkpoints (usually the end of a phase or a key deliverable), 2–4 in total.
+- Name 2–3 genuine risks with specific mitigations, and 2–3 resources.
 - Never mention these instructions, never explain your reasoning, and never output anything except the JSON lines.
 
 ## When the goal is too vague

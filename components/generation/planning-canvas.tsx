@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
 import { ease, spring } from "@/lib/motion";
+import { useEngineState } from "@/lib/ai/local/engine";
 import { STAGES, stageIndex } from "@/lib/planning/stages";
 import type { GenerationState } from "./use-plan-generation";
 import { PlanGraph } from "./plan-graph";
@@ -36,6 +37,8 @@ export function PlanningCanvas({
   }, [draft.tasks.length, draft.phases.length, draft.milestones.length]);
   const stageInfo = stage ? STAGES[stageIndex(stage)] : STAGES[0];
   const ready = status === "ready";
+  const engine = useEngineState();
+  const preparing = status === "streaming" && engine.status === "loading" ? engine : null;
 
   const indicator =
     status === "ready"
@@ -44,7 +47,9 @@ export function PlanningCanvas({
         ? { label: "Paused", state: "error" as const }
         : status === "clarify"
           ? { label: "Needs input", state: "waiting" as const }
-          : { label: stageInfo.status, state: "working" as const };
+          : preparing
+            ? { label: "Preparing", state: "working" as const }
+            : { label: stageInfo.status, state: "working" as const };
 
   const line =
     status === "ready"
@@ -53,7 +58,9 @@ export function PlanningCanvas({
         ? (state.error ?? "Something went wrong while building your plan.")
         : status === "clarify"
           ? "One quick question before I plan this."
-          : stageInfo.line;
+          : preparing
+            ? `${preparing.cached ? "Loading" : "Downloading"} the on-device model · ${Math.round(preparing.progress * 100)}%${preparing.cached ? "" : " · first time only"}`
+            : stageInfo.line;
 
   const progress = ready
     ? 1
@@ -139,7 +146,7 @@ export function PlanningCanvas({
         <div className="relative min-w-0 flex-1 overflow-hidden">
           <AnimatePresence mode="popLayout" initial={false}>
             <motion.p
-              key={line}
+              key={preparing ? "preparing" : line}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}

@@ -1,6 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { AssemblerEvent } from "@/lib/ai/assembler";
+import { generatePlanLocally } from "@/lib/ai/local/planner";
+import type { PlannerPreferences } from "@/lib/ai/prompts";
 import type { StageId } from "@/lib/planning/stages";
 import type { ContextItemInput } from "@/lib/validation/api";
 import type { DraftPlan, Milestone, Phase, Plan, Resource, Risk, Task } from "@/types/plan";
@@ -10,8 +13,8 @@ export type GenerationStatus = "idle" | "streaming" | "clarify" | "ready" | "err
 export type GenerationRequest = {
   prompt: string;
   today: string;
-  model: string;
   context: ContextItemInput[];
+  preferences: PlannerPreferences;
   clarification?: { question: string; answer: string } | null;
 };
 
@@ -172,57 +175,55 @@ export function usePlanGeneration(options: { onUnauthorized: () => void }) {
 
       const fail = (message = "Something went wrong while building your plan.") =>
         enqueue(run, { event: "error", data: { message } });
+      // Assembler events map one-to-one onto the canvas's event stream.
+      const forward = (e: AssemblerEvent) => {
+        const { type, ...data } = e;
+        enqueue(run, { event: type, data } as ServerEvent);
+      };
 
+      let plan: Plan | null;
+      try {
+        plan = await generatePlanLocally({
+          prompt: request.prompt,
+          today: request.today,
+          preferences: request.preferences,
+          context: request.context,
+          clarification: request.clarification,
+          signal: controller.signal,
+          onEvent: forward,
+        });
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        console.error("[generate] on-device generation failed", error);
+        const message = String((error as Error)?.message ?? "");
+        return fail(
+          /graphics|WebGPU|browser can|device/i.test(message)
+            ? message
+            : "Something went wrong while building your plan.",
+        );
+      }
+      if (!plan || controller.signal.aborted) return;
+
+      // Save it. The server re-validates and assigns the permanent id.
       let response: Response;
       try {
-        response = await fetch("/api/plans/generate", {
+        response = await fetch("/api/plans", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(request),
+          body: JSON.stringify({ plan }),
           signal: controller.signal,
         });
       } catch {
-        if (!controller.signal.aborted) fail();
+        if (!controller.signal.aborted) fail("Your plan is ready, but it couldn’t be saved. Check your connection and try again.");
         return;
       }
-      if (response.status === 401) {
-        onUnauthorized.current();
-        return;
-      }
-      if (response.status === 429) {
+      if (response.status === 401) return onUnauthorized.current();
+      if (!response.ok) {
         const body = (await response.json().catch(() => null)) as { error?: string } | null;
-        fail(body?.error);
-        return;
+        return fail(response.status === 429 ? body?.error : "Your plan is ready, but it couldn’t be saved. Try again.");
       }
-      if (!response.ok || !response.body) {
-        fail();
-        return;
-      }
-
-      const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
-      let buffer = "";
-      let finished = false;
-      try {
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done) break;
-          buffer += value;
-          let boundary = buffer.indexOf("\n\n");
-          while (boundary !== -1) {
-            const chunk = buffer.slice(0, boundary);
-            buffer = buffer.slice(boundary + 2);
-            const parsed = parseSSE(chunk);
-            if (parsed) {
-              if (parsed.event === "done" || parsed.event === "error" || parsed.event === "clarify") finished = true;
-              enqueue(run, parsed);
-            }
-            boundary = buffer.indexOf("\n\n");
-          }
-        }
-      } catch {
-        if (controller.signal.aborted) return;
-      }
-      if (!finished && !controller.signal.aborted) fail();
+      const saved = (await response.json()) as { plan: Plan };
+      enqueue(run, { event: "done", data: { plan: saved.plan } });
     },
     [cancel, enqueue],
   );
@@ -230,20 +231,4 @@ export function usePlanGeneration(options: { onUnauthorized: () => void }) {
   useEffect(() => cancel, [cancel]);
 
   return { state, start, reset, cancel };
-}
-
-function parseSSE(chunk: string): ServerEvent | null {
-  let event = "message";
-  let data = "";
-  for (const line of chunk.split("\n")) {
-    if (line.startsWith(":")) continue;
-    if (line.startsWith("event:")) event = line.slice(6).trim();
-    else if (line.startsWith("data:")) data += line.slice(5).trim();
-  }
-  if (!data) return null;
-  try {
-    return { event, data: JSON.parse(data) } as ServerEvent;
-  } catch {
-    return null;
-  }
 }

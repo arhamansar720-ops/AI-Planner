@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils/cn";
 import type { ContextItemInput } from "@/lib/validation/api";
 import type { PlanSummary } from "@/types/plan";
 import { AddContextButton } from "./context-menu";
-import { ModelMenu } from "./model-menu";
+import { LocalModelChip } from "./local-model-chip";
 
 export type ComposerHandle = { focus: () => void };
 
@@ -22,13 +22,11 @@ type Props = {
   onSubmit: () => void;
   context: ContextItemInput[];
   onContextChange: (items: ContextItemInput[]) => void;
-  model: string;
-  onModelChange: (id: string) => void;
   recentPlans: PlanSummary[];
 };
 
 export const PromptComposer = forwardRef<ComposerHandle, Props>(function PromptComposer(
-  { value, onChange, onSubmit, context, onContextChange, model, onModelChange, recentPlans },
+  { value, onChange, onSubmit, context, onContextChange, recentPlans },
   ref,
 ) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -143,7 +141,7 @@ export const PromptComposer = forwardRef<ComposerHandle, Props>(function PromptC
             <Kbd>⌘</Kbd>
             <Kbd>↵</Kbd>
           </span>
-          <ModelMenu value={model} onChange={onModelChange} />
+          <LocalModelChip />
           <Tooltip content="Build plan" shortcut="⌘↵" side="top">
             <motion.button
               ref={buttonScope}

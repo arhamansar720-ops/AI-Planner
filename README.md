@@ -6,11 +6,11 @@ Give Forma an objective, idea or problem and watch it become a complete, schedul
 Idea → Prompt → AI understands → AI structures → AI organizes → Finished plan
 ```
 
-The home page is the product: a single prompt. When you submit, the prompt travels to the top of the screen, a frosted planning canvas appears, and the plan assembles live from Claude's streamed output: goal, phases, tasks, dependencies, timeline and milestones. When it's done, the canvas expands into a workspace with an overview, timeline, task list, calendar, milestones, resources, notes, and an assistant that can change the plan.
+The home page is the product: a single prompt. When you submit, the prompt travels to the top of the screen, a frosted planning canvas appears, and the plan assembles live as an AI model running **in your browser** writes it: goal, phases, tasks, dependencies, timeline and milestones. When it's done, the canvas expands into a workspace with an overview, timeline, task list, calendar, milestones, resources, notes, and an assistant that can change the plan.
 
 ## Stack
 
-Next.js 16 (App Router, Turbopack) · TypeScript · Tailwind CSS 4 · Radix primitives in shadcn-style components · Framer Motion · Supabase (Postgres + Auth) · Anthropic API · Zod
+Next.js 16 (App Router, Turbopack) · TypeScript · Tailwind CSS 4 · Radix primitives in shadcn-style components · Framer Motion · Supabase (Postgres + Auth) · WebLLM (on-device Qwen3 8B over WebGPU) · Zod
 
 ## Getting started
 
@@ -27,9 +27,7 @@ Next.js 16 (App Router, Turbopack) · TypeScript · Tailwind CSS 4 · Radix prim
 
 4. **Configure auth redirects.** In *Authentication → URL Configuration*, set the Site URL to your app's URL and add `<your-url>/auth/callback` as a redirect URL (used by email confirmation).
 
-5. **Add your Anthropic key** as `ANTHROPIC_API_KEY`. It is only read on the server.
-
-6. **Run it**
+5. **Run it**
 
    ```bash
    npm run dev
@@ -45,16 +43,24 @@ Next.js 16 (App Router, Turbopack) · TypeScript · Tailwind CSS 4 · Radix prim
 
 ## How it works
 
+### On-device AI
+
+There is no AI provider and no API key. Plans and assistant answers come from **Qwen3 8B** (4-bit, via [WebLLM](https://github.com/mlc-ai/web-llm)) running on the visitor's GPU through WebGPU:
+
+- The model (about 5 GB) downloads from Hugging Face on first use and is cached by the browser; later visits load it in seconds. The prompt box shows its status, and Settings can remove it.
+- It runs in a module Web Worker (`lib/ai/local/engine.ts`) so the interface keeps animating while it writes. The worker loads the same pinned WebLLM version from jsDelivr; if that fails it runs on the main thread.
+- It needs Chrome or Edge with WebGPU and roughly 6 GB of graphics memory. Unsupported devices get a clear message instead of a broken flow.
+- The context window is raised to 8,192 tokens so a prompt and a complete plan fit; the planning prompt asks for compact plans (3–5 phases of 3–5 tasks).
+- To use a different model, set `NEXT_PUBLIC_LOCAL_MODEL` to any WebLLM prebuilt model id (for example `Qwen3-4B-q4f16_1-MLC` for weaker machines).
+
 ### Generation: real streaming, not a loading animation
 
-`POST /api/plans/generate` streams Server-Sent Events.
+1. `lib/ai/local/planner.ts` asks the model for **NDJSON**: one JSON object per line (`meta`, then each `phase` followed by its `task`s, then `milestone`, `risk`, `resource` and `next`).
+2. As each line completes, `PlanAssembler` (`lib/ai/assembler.ts`) validates it with Zod (`lib/ai/schemas.ts`), converts it to a domain entity and hands it to the canvas right away.
+3. The model works in **day offsets** ("day 0 = today"). The assembler converts them to calendar dates, so the model never does date arithmetic.
+4. The finished plan is posted to `POST /api/plans`, which re-normalizes and validates it, assigns its id and saves it.
 
-1. `lib/ai/planner.ts` asks Claude for **NDJSON**: one JSON object per line (`meta`, then each `phase` followed by its `task`s, then `milestone`, `risk`, `resource` and `next`).
-2. As each line completes, it is validated with Zod (`lib/ai/schemas.ts`), converted to a domain entity and sent to the browser right away. Planning stages advance from what the stream is actually doing, starting with the model's thinking block and then each kind of line as it first appears.
-3. The model works in **day offsets** ("day 0 = today"). The server converts them to calendar dates, so the model never does date arithmetic.
-4. The final plan is normalized, validated against `PlanSchema` and saved before the `done` event is sent.
-
-In the browser, `use-plan-generation.ts` puts incoming events in a queue and releases them at a readable pace, speeding up when there's a backlog. The canvas (`components/generation/`) draws them as they arrive: the goal node, phase columns, task cards that settle into place, dependency connectors and a timeline that builds itself.
+`use-plan-generation.ts` puts incoming events in a queue and releases them at a readable pace, speeding up when there's a backlog. The canvas (`components/generation/`) draws them as they arrive: the goal node, phase columns, task cards that settle into place, dependency connectors and a timeline that builds itself.
 
 If the request is too vague to plan, the model can send a single `clarify` line instead. The canvas shows the question with suggested answers, and generation restarts with the answer attached.
 
@@ -71,11 +77,7 @@ The deterministic engine in `lib/planning/schedule.ts` handles everything derive
 
 ### The assistant edits the plan
 
-`POST /api/plans/[id]/assistant` sends Claude the current plan and asks for a reply plus a list of structured **operations** (`update_task`, `set_daily_minutes`, `set_blocked_weekdays`, `set_deadline`, and so on), validated with structured outputs. Each operation becomes a normal mutation run through the same reducer, so "I can't work Fridays" is one `set_blocked_weekdays` operation and the engine reschedules everything else. Changes show up in the conversation and can be undone. Conversations are stored per plan.
-
-### Models
-
-`lib/config.ts` lists the selectable models. The default is **Claude Sonnet 5.5**, and Opus 5.5 and Haiku 4.5 are also available. Per-model request options live in `lib/ai/client.ts`. Sonnet 5.5 and Opus 5.5 requests have server-side refusal fallbacks enabled (`fallbacks: "default"`).
+`lib/ai/local/assistant.ts` gives the model the current plan and asks for a reply plus a list of structured **operations** (`update_task`, `set_daily_minutes`, `set_blocked_weekdays`, `set_deadline`, and so on). WebLLM's JSON-schema mode constrains the answer to that shape, and it is validated again with Zod. Each operation becomes a normal mutation run through the same reducer, so "I can't work Fridays" is one `set_blocked_weekdays` operation and the engine reschedules everything else. Changes show up in the conversation and can be undone. Conversations are stored per plan.
 
 ### Data
 
@@ -92,7 +94,7 @@ components/
   tasks/ timeline/ calendar/ ai/ history/ settings/
   ui/                 design-system primitives
 lib/
-  ai/                 client, planner, assistant, prompts, schemas
+  ai/                 assembler, prompts, schemas, operations; local/ = on-device engine, planner, assistant
   planning/           dates, scheduling engine, mutations, selectors, stages
   db/                 Supabase clients and repositories
   validation/         Zod schemas for the domain and API
@@ -109,9 +111,11 @@ To rename the product, edit `product` in `lib/config.ts`.
 
 ## Claude test bench
 
-`npm run bench` builds `bench/dist/forma-bench.html`: a single-file version of the app that runs inside Claude as an artifact, with no server or database. It bundles the real assembler, prompts, schemas, scheduling engine and mutation reducer (`bench/engine.ts`), and calls Claude through the artifact `sample` capability on the viewer's own account. Plans are saved in the browser. Use it to try the generation flow and prompt changes without deploying.
+`npm run bench` builds `bench/dist/forma-bench.html`: a single-file version of the app that runs inside Claude as an artifact, with no server or database. It bundles the real assembler, prompts, schemas, scheduling engine and mutation reducer (`bench/engine.ts`), and calls Claude (not the on-device model) through the artifact `sample` capability on the viewer's own account. Plans are saved in the browser. Use it to try the generation flow and prompt changes without deploying.
 
 ## Current limitations
 
 - Notification preferences are saved, but this repository doesn't send email. Connect an email provider to deliver them.
 - File context accepts text formats (`.txt`, `.md`, `.csv`, `.json`). Links are passed as URLs and not fetched.
+- The on-device model is much smaller than a hosted frontier model: plans are simpler, and it can't run on phones or low-memory GPUs.
+- Attached context (notes, files, earlier plans) shares the 8,192-token window with the plan, so very long attachments can crowd out the plan.

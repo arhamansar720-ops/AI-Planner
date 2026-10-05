@@ -9,8 +9,10 @@ import { useToast } from "@/components/ui/toast";
 import { ease, spring } from "@/lib/motion";
 import { localToday } from "@/lib/planning/dates";
 import { cn } from "@/lib/utils/cn";
-import type { Plan } from "@/types/plan";
 import { Markdown } from "./markdown";
+import { runLocalAssistant } from "@/lib/ai/local/assistant";
+import { useEngineState } from "@/lib/ai/local/engine";
+import type { ResponseStyle } from "@/lib/config";
 
 type Message = { id: string; role: "user" | "assistant"; content: string; changes: string[] };
 
@@ -21,8 +23,9 @@ const SUGGESTIONS = [
   "I can’t work Fridays.",
 ];
 
-export function AssistantPanel({ className }: { className?: string }) {
-  const { plan, replace, assistantDraft } = usePlanStore();
+export function AssistantPanel({ className, responseStyle = "concise" }: { className?: string; responseStyle?: ResponseStyle }) {
+  const { plan, applyBatch, assistantDraft } = usePlanStore();
+  const engine = useEngineState();
   const [messages, setMessages] = useState<Message[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [input, setInput] = useState("");
@@ -77,25 +80,44 @@ export function AssistantPanel({ className }: { className?: string }) {
       setPending(message);
       setInput("");
       try {
+        const result = await runLocalAssistant({
+          plan,
+          history: messages.map((m) => ({ role: m.role, content: m.content })),
+          message,
+          today: localToday(),
+          responseStyle,
+        });
+        if (result.mutations.length) applyBatch(result.mutations, { message: result.changes[0] ?? "Plan updated" });
         const res = await fetch(`/api/plans/${planId}/assistant`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message, today: localToday() }),
+          body: JSON.stringify({ message, reply: result.reply || "Done.", changes: result.changes }),
         });
-        if (!res.ok) throw new Error();
-        const data = (await res.json()) as { userMessage: Message; reply: Message; plan: Plan | null; changes: string[] };
-        setMessages((m) => [...m, data.userMessage, data.reply]);
-        if (data.plan) {
-          replace(data.plan, { undoable: true, message: data.changes[0] ?? "Plan updated" });
+        if (res.ok) {
+          const data = (await res.json()) as { userMessage: Message; reply: Message };
+          setMessages((m) => [...m, data.userMessage, data.reply]);
+        } else {
+          // Keep the answer on screen even if it couldn't be stored.
+          const now = Date.now();
+          setMessages((m) => [
+            ...m,
+            { id: `u${now}`, role: "user", content: message, changes: [] },
+            { id: `a${now}`, role: "assistant", content: result.reply, changes: result.changes },
+          ]);
         }
-      } catch {
+      } catch (error) {
+        console.error("[assistant]", error);
         setInput(message);
-        toast({ message: "The assistant couldn’t respond. Please try again.", tone: "error" });
+        toast({
+          message:
+            engine.status === "unsupported" ? engine.reason : "The assistant couldn’t respond. Please try again.",
+          tone: "error",
+        });
       } finally {
         setPending(null);
       }
     },
-    [pending, planId, replace, toast],
+    [pending, planId, plan, messages, responseStyle, applyBatch, toast, engine],
   );
 
   return (
@@ -166,7 +188,10 @@ export function AssistantPanel({ className }: { className?: string }) {
                   </p>
                 </div>
                 <p className="flex items-center gap-2 text-[13px] text-fg-subtle">
-                  <ThinkingDots /> Looking at your plan…
+                  <ThinkingDots />{" "}
+                  {engine.status === "loading"
+                    ? `Loading the on-device model · ${Math.round(engine.progress * 100)}%`
+                    : "Looking at your plan…"}
                 </p>
               </motion.div>
             )}

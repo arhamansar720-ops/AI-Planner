@@ -1,17 +1,16 @@
 import { connection } from "next/server";
 import { pickHeading } from "@/components/home/phrases";
 import { PlannerExperience } from "@/components/planner/planner-experience";
-import { DEFAULT_MODEL } from "@/lib/config";
 import { isSupabaseConfigured } from "@/lib/db/env";
 import { listPlans } from "@/lib/db/plans";
-import { getPreferences } from "@/lib/db/preferences";
+import { DEFAULT_PREFERENCES, getPreferences } from "@/lib/db/preferences";
 import { getSession } from "@/lib/db/server";
 import { getNavUser } from "@/lib/db/user";
 
 export default async function HomePage() {
   await connection(); // per-request: session, preferences and a fresh heading
   let user = null;
-  let model = DEFAULT_MODEL;
+  let preferences = DEFAULT_PREFERENCES;
   let recentPlans: Awaited<ReturnType<typeof listPlans>> = [];
 
   if (isSupabaseConfigured()) {
@@ -23,7 +22,7 @@ export default async function HomePage() {
         listPlans(session.supabase).catch(() => []),
       ]);
       user = navUser;
-      model = prefs.model;
+      preferences = prefs;
       recentPlans = plans;
     }
   }
@@ -32,7 +31,13 @@ export default async function HomePage() {
     <PlannerExperience
       user={user}
       initialHeading={pickHeading()}
-      defaultModel={model}
+      preferences={{
+        planningStyle: preferences.planningStyle,
+        defaultDurationWeeks: preferences.defaultDurationWeeks,
+        dailyMinutes: preferences.dailyMinutes,
+        blockedWeekdays: preferences.blockedWeekdays,
+        responseStyle: preferences.responseStyle,
+      }}
       recentPlans={recentPlans}
     />
   );
