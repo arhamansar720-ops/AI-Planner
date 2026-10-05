@@ -7,7 +7,6 @@ import BlurText from "@/components/reactbits/BlurText";
 import CountUp from "@/components/reactbits/CountUp";
 import Magnet from "@/components/reactbits/Magnet";
 import RotatingText from "@/components/reactbits/RotatingText";
-import ShinyText from "@/components/reactbits/ShinyText";
 import Threads from "@/components/reactbits/Threads";
 import { Button } from "@/components/ui/button";
 import { ease } from "@/lib/motion";
@@ -20,7 +19,7 @@ export function Hero() {
   const accent = useAccentRGB();
 
   return (
-    <section className="relative isolate overflow-hidden px-4 pb-20 pt-16 sm:pb-28 sm:pt-24">
+    <section className="relative isolate overflow-hidden px-4 pb-20 pt-20 sm:pb-28 sm:pt-28">
       {/* Threads drawn in the accent, fading out toward the edges. */}
       <div
         className="pointer-events-none absolute inset-x-0 top-[24%] -z-10 h-[620px] opacity-50 [mask-image:radial-gradient(ellipse_70%_60%_at_50%_45%,black,transparent)] dark:opacity-75"
@@ -36,22 +35,6 @@ export function Hero() {
       />
 
       <div className="mx-auto flex max-w-[880px] flex-col items-center text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: ease.expo }}
-          className="glass mb-7 inline-flex h-8 items-center gap-2 rounded-full px-3.5 text-[13px]"
-        >
-          <span className="size-1.5 rounded-full bg-accent" aria-hidden />
-          <ShinyText
-            text="Private by design · the AI runs on your device"
-            color="var(--fg-muted)"
-            shineColor="var(--fg)"
-            speed={3}
-            disabled={!!reduce}
-          />
-        </motion.div>
-
         <h1 className="text-balance text-[clamp(2.5rem,7vw,4.75rem)] font-semibold leading-[1.02] tracking-[-0.045em] text-fg">
           <BlurText
             as="span"
