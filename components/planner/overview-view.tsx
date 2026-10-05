@@ -5,10 +5,10 @@ import { AlertTriangle, ArrowRight, Flag, Plus } from "lucide-react";
 import { TaskRow } from "@/components/tasks/task-row";
 import { TimelineStrip } from "@/components/timeline/timeline-strip";
 import { Button } from "@/components/ui/button";
-import { spring } from "@/lib/motion";
+import { ease } from "@/lib/motion";
 import { formatMinutes, formatRange, formatShort, localToday } from "@/lib/planning/dates";
 import { createBlankTask } from "@/lib/planning/mutations";
-import { focusForToday, weekLabel } from "@/lib/planning/selectors";
+import { focusForToday, upNext, weekLabel } from "@/lib/planning/selectors";
 import { cn } from "@/lib/utils/cn";
 import { PlanHeader } from "./plan-header";
 import { usePlanStore } from "./plan-store";
@@ -16,17 +16,26 @@ import { usePlanStore } from "./plan-store";
 export function OverviewView({ handoff }: { handoff: boolean }) {
   const { plan, dispatch, setView, openTask } = usePlanStore();
   const today = localToday();
-  const focus = focusForToday(plan, today);
+  const todays = focusForToday(plan, today);
+  const focus = todays.length ? todays : upNext(plan);
   const todaysMinutes = plan.schedule.filter((s) => s.date === today).reduce((a, s) => a + s.durationMinutes, 0);
   const anyDone = plan.tasks.some((t) => t.status === "done");
 
   return (
-    <div className="flex flex-col gap-10">
-      <PlanHeader handoff={handoff} />
+    <motion.div
+      className="flex flex-col gap-10"
+      initial={handoff ? "hidden" : false}
+      animate="show"
+      variants={{ hidden: {}, show: { transition: { staggerChildren: 0.07, delayChildren: 0.28 } } }}
+    >
+      <Arrive>
+        <PlanHeader handoff={handoff} />
+      </Arrive>
 
       {/* Today */}
+      <Arrive>
       <Section
-        title={plan.status === "completed" ? "All done" : "Focus today"}
+        title={plan.status === "completed" ? "All done" : todays.length ? "Focus today" : "Up next"}
         aside={todaysMinutes > 0 ? `${formatMinutes(todaysMinutes)} scheduled` : undefined}
       >
         {plan.status === "completed" ? (
@@ -38,8 +47,11 @@ export function OverviewView({ handoff }: { handoff: boolean }) {
             ))}
           </div>
         ) : (
-          <p className="text-sm text-fg-muted">
-            Nothing is due yet. The next task starts {formatShort(plan.tasks.find((t) => t.status !== "done")?.startDate ?? plan.startDate)}.
+          <p className="text-sm text-fg-muted">Everything open is waiting on something else first.</p>
+        )}
+        {!todays.length && focus.length > 0 && plan.status !== "completed" && (
+          <p className="mt-1 text-xs text-fg-subtle">
+            Nothing is scheduled today — the next session starts {formatShort(focus[0].startDate)}. Getting ahead is always allowed.
           </p>
         )}
         {!anyDone && plan.nextActions.length > 0 && (
@@ -56,8 +68,10 @@ export function OverviewView({ handoff }: { handoff: boolean }) {
           </div>
         )}
       </Section>
+      </Arrive>
 
       {/* Timeline */}
+      <Arrive>
       <Section
         title="Timeline"
         action={
@@ -76,19 +90,16 @@ export function OverviewView({ handoff }: { handoff: boolean }) {
           assemble={false}
         />
       </Section>
+      </Arrive>
 
       {/* Phases */}
-      <div className="flex flex-col gap-9">
+      <Arrive className="flex flex-col gap-9">
         {plan.phases.map((phase, i) => {
           const tasks = plan.tasks.filter((t) => t.phaseId === phase.id);
           const doneCount = tasks.filter((t) => t.status === "done").length;
           return (
             <section key={phase.id} aria-labelledby={`phase-${phase.id}-title`}>
-              <motion.div
-                layoutId={handoff ? `phase-${phase.id}` : undefined}
-                transition={spring.travel}
-                className="mb-2 flex items-end justify-between gap-4 border-b border-border pb-2.5"
-              >
+              <div className="mb-2 flex items-end justify-between gap-4 border-b border-border pb-2.5">
                 <div className="min-w-0">
                   <p className="text-xs font-medium tabular-nums text-accent">
                     Phase {i + 1} · {weekLabel(plan.startDate, phase.startDate, phase.endDate)}
@@ -101,10 +112,10 @@ export function OverviewView({ handoff }: { handoff: boolean }) {
                 <span className="shrink-0 text-xs tabular-nums text-fg-subtle">
                   {formatRange(phase.startDate, phase.endDate)} · {doneCount}/{tasks.length}
                 </span>
-              </motion.div>
+              </div>
               <div className="-mx-3 flex flex-col">
                 {tasks.map((t) => (
-                  <TaskRow key={t.id} task={t} layoutId={handoff ? `task-${t.id}` : undefined} />
+                  <TaskRow key={t.id} task={t} />
                 ))}
               </div>
               <button
@@ -121,7 +132,7 @@ export function OverviewView({ handoff }: { handoff: boolean }) {
             </section>
           );
         })}
-      </div>
+      </Arrive>
 
       {/* Milestones */}
       {plan.milestones.length > 0 && (
@@ -180,7 +191,22 @@ export function OverviewView({ handoff }: { handoff: boolean }) {
           )}
         </div>
       )}
-    </div>
+    </motion.div>
+  );
+}
+
+/** One step of the staggered arrival after generation. */
+function Arrive({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <motion.div
+      className={className}
+      variants={{
+        hidden: { opacity: 0, y: 14, filter: "blur(4px)" },
+        show: { opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 0.6, ease: ease.expo } },
+      }}
+    >
+      {children}
+    </motion.div>
   );
 }
 

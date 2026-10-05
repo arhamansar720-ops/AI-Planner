@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Check, RotateCcw } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
 import { ease, spring } from "@/lib/motion";
@@ -26,6 +26,14 @@ export function PlanningCanvas({
   onClarify: (answer: string) => void;
 }) {
   const { status, stage, draft } = state;
+  const feedRef = useRef<HTMLDivElement>(null);
+
+  // On small screens the canvas is a feed: keep the newest piece of the plan in view.
+  useEffect(() => {
+    const el = feedRef.current;
+    if (!el || el.scrollHeight <= el.clientHeight) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+  }, [draft.tasks.length, draft.phases.length, draft.milestones.length]);
   const stageInfo = stage ? STAGES[stageIndex(stage)] : STAGES[0];
   const ready = status === "ready";
 
@@ -42,7 +50,7 @@ export function PlanningCanvas({
     status === "ready"
       ? "Your plan is ready."
       : status === "error"
-        ? "Something went wrong while building your plan."
+        ? (state.error ?? "Something went wrong while building your plan.")
         : status === "clarify"
           ? "One quick question before I plan this."
           : stageInfo.line;
@@ -55,16 +63,23 @@ export function PlanningCanvas({
 
   return (
     <motion.section
-      layoutId="plan-surface"
       aria-label="Building your plan"
       aria-busy={status === "streaming"}
       initial={{ opacity: 0, y: 28, scale: 0.97, filter: "blur(10px)" }}
       animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
       exit={{ opacity: 0, transition: { duration: 0.35 } }}
-      transition={{ ...spring.travel, opacity: { duration: 0.5, delay: 0.12 }, filter: { duration: 0.6, delay: 0.12 } }}
+      transition={{
+        ...spring.travel,
+        delay: 0.32,
+        opacity: { duration: 0.5, delay: 0.32 },
+        filter: { duration: 0.6, delay: 0.32 },
+      }}
       style={{ borderRadius: 28 }}
       className="glass relative w-full max-w-[1080px] overflow-hidden"
     >
+      {/* Invisible anchor that carries the shared-layout handoff to the workspace,
+          so the surface itself never scale-animates while its content grows. */}
+      <motion.span layoutId="plan-surface" className="pointer-events-none absolute inset-0 opacity-0" aria-hidden />
       {/* Completion: a single soft accent breath around the surface. */}
       <AnimatePresence>
         {ready && (
@@ -83,7 +98,7 @@ export function PlanningCanvas({
         <span className="text-xs text-fg-subtle">{modelLabel}</span>
       </header>
 
-      <div className="grid md:grid-cols-[232px_minmax(0,1fr)]">
+      <div className="grid md:grid-cols-[252px_minmax(0,1fr)]">
         <aside className="hidden border-r border-glass-edge px-6 py-7 md:block">
           <StageList stage={stage} complete={ready} />
         </aside>
@@ -91,7 +106,9 @@ export function PlanningCanvas({
           <AnimatePresence mode="wait" initial={false}>
             {status === "error" ? (
               <CenterMessage key="error">
-                <p className="text-[15px] font-medium text-fg">Something went wrong while building your plan.</p>
+                <p className="max-w-md text-balance text-[15px] font-medium text-fg">
+                  {state.error ?? "Something went wrong while building your plan."}
+                </p>
                 <p className="mt-1 text-sm text-fg-muted">Your prompt is safe. Try again, or adjust it first.</p>
                 <div className="mt-5 flex justify-center gap-2">
                   <Button variant="primary" onClick={onRetry}>
@@ -105,7 +122,12 @@ export function PlanningCanvas({
             ) : status === "clarify" && state.clarify ? (
               <Clarify key="clarify" question={state.clarify.question} options={state.clarify.options} onAnswer={onClarify} />
             ) : (
-              <motion.div key="graph" className="h-full" exit={{ opacity: 0 }}>
+              <motion.div
+                key="graph"
+                ref={feedRef}
+                className="h-full max-md:-mx-4 max-md:max-h-[52dvh] max-md:overflow-y-auto max-md:px-4 max-md:[mask-image:linear-gradient(to_bottom,transparent,black_24px,black_calc(100%-24px),transparent)] max-md:no-scrollbar"
+                exit={{ opacity: 0 }}
+              >
                 <PlanGraph draft={draft} streaming={status === "streaming"} />
               </motion.div>
             )}

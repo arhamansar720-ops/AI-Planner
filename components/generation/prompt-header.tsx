@@ -34,11 +34,11 @@ export function PromptHeader({
         {prompt}
       </motion.p>
       {contextCount > 0 && (
-        <span className="hidden shrink-0 rounded-md bg-surface-2 px-1.5 py-0.5 text-[11px] text-fg-subtle sm:inline">
+        <motion.span layout="position" className="hidden shrink-0 rounded-md bg-surface-2 px-1.5 py-0.5 text-[11px] text-fg-subtle sm:inline">
           +{contextCount} context
-        </span>
+        </motion.span>
       )}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }}>
+      <motion.div layout="position" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }}>
         <Button variant="ghost" size="xs" onClick={onEdit}>
           {editLabel}
         </Button>

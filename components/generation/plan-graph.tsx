@@ -101,7 +101,7 @@ export function PlanGraph({ draft, streaming }: { draft: DraftPlan; streaming: b
         {phases.length === 0 && (
           <motion.div
             key="fragments"
-            className="pointer-events-none relative mx-auto mt-10 h-40 w-full max-w-xl"
+            className="pointer-events-none absolute inset-x-0 top-28 mx-auto h-40 w-full max-w-xl"
             exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.4 } }}
             aria-hidden
           >
@@ -126,7 +126,7 @@ export function PlanGraph({ draft, streaming }: { draft: DraftPlan; streaming: b
       {/* Phases and tasks */}
       {phases.length > 0 && (
         <div
-          className="mt-9 grid gap-3 md:gap-4 [grid-template-columns:1fr] md:[grid-template-columns:repeat(var(--cols),minmax(0,1fr))]"
+          className="mx-auto mt-9 grid w-full gap-3 md:max-w-[calc(var(--cols)*260px)] md:gap-4 [grid-template-columns:1fr] md:[grid-template-columns:repeat(var(--cols),minmax(0,1fr))]"
           style={{ "--cols": columns } as React.CSSProperties}
         >
           {phases.map((phase, pi) => {
@@ -142,7 +142,6 @@ export function PlanGraph({ draft, streaming }: { draft: DraftPlan; streaming: b
                 className="flex min-w-0 flex-col gap-2"
               >
                 <motion.div
-                  layoutId={`phase-${phase.id}`}
                   data-node={`phase:${phase.id}`}
                   className="relative z-10 rounded-xl border border-border bg-surface px-3 py-2 shadow-xs"
                 >
@@ -203,7 +202,7 @@ function TaskCard({ task }: { task: Task }) {
   const from = scatter(task.id);
   return (
     <motion.div
-      layoutId={`task-${task.id}`}
+      layout="position"
       data-node={`task:${task.id}`}
       initial={{ opacity: 0, x: from.x, y: from.y, rotate: from.rotate, filter: "blur(5px)" }}
       animate={{ opacity: 1, x: 0, y: 0, rotate: 0, filter: "blur(0px)" }}
@@ -282,10 +281,13 @@ function Connectors({
       }
       if (!stacked) {
         const visible = new Set(tasks.map((t) => t.id));
+        const column = new Map(tasks.map((t) => [t.id, phaseIds.indexOf(t.phaseId)]));
         let count = 0;
         for (const t of tasks) {
           for (const dep of t.dependsOn) {
             if (!visible.has(dep) || count > 14) continue;
+            // Long jumps would cut through other columns; the workspace shows those links instead.
+            if (Math.abs((column.get(dep) ?? 0) - (column.get(t.id) ?? 0)) > 1) continue;
             const a = rect(`task:${dep}`);
             const b = rect(`task:${t.id}`);
             if (!a || !b) continue;

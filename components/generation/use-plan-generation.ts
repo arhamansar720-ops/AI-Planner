@@ -170,8 +170,8 @@ export function usePlanGeneration(options: { onUnauthorized: () => void }) {
       abortRef.current = controller;
       setState({ ...INITIAL, status: "streaming", request });
 
-      const fail = () =>
-        enqueue(run, { event: "error", data: { message: "Something went wrong while building your plan." } });
+      const fail = (message = "Something went wrong while building your plan.") =>
+        enqueue(run, { event: "error", data: { message } });
 
       let response: Response;
       try {
@@ -187,6 +187,11 @@ export function usePlanGeneration(options: { onUnauthorized: () => void }) {
       }
       if (response.status === 401) {
         onUnauthorized.current();
+        return;
+      }
+      if (response.status === 429) {
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        fail(body?.error);
         return;
       }
       if (!response.ok || !response.body) {

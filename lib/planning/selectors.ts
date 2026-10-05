@@ -34,6 +34,14 @@ export function focusForToday(plan: Plan, today: string, limit = 4): Task[] {
     .slice(0, limit);
 }
 
+/** Next unblocked tasks when nothing is due yet. */
+export function upNext(plan: Plan, limit = 3): Task[] {
+  return plan.tasks
+    .filter((t) => t.status !== "done" && isBlocked(t, plan).length === 0)
+    .sort((a, b) => a.startDate.localeCompare(b.startDate) || a.dueDate.localeCompare(b.dueDate))
+    .slice(0, limit);
+}
+
 export function planMeta(plan: Plan) {
   const statusLabel =
     plan.status === "completed" ? "Completed" : plan.status === "archived" ? "Archived" : "In progress";

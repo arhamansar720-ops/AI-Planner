@@ -16,7 +16,7 @@ const HEADER = 44;
 export function TimelineView() {
   const { plan, dispatch, openTask } = usePlanStore();
   const today = localToday();
-  const start = addDays(plan.startDate, -2);
+  const start = addDays(plan.startDate, -1);
   const end = addDays(plan.endDate, 5);
   const span = diffDays(end, start) + 1;
   const dayW = span <= 35 ? 30 : span <= 100 ? 16 : span <= 200 ? 8 : 5;
@@ -37,8 +37,9 @@ export function TimelineView() {
   rows.forEach((r, i) => r.kind === "task" && rowIndex.set(r.task.id, i));
   const height = (rows.length + 1) * ROW;
 
+  // Columns follow the plan's own weeks: Week 1 starts on the start date.
   const weeks: string[] = [];
-  for (let d = start; d <= end; d = addDays(d, 7)) weeks.push(d);
+  for (let d = plan.startDate; d <= end; d = addDays(d, 7)) weeks.push(d);
 
   return (
     <div className="flex flex-col gap-6">
@@ -117,7 +118,7 @@ export function TimelineView() {
                     <div className="px-2 pt-2 text-[11px] leading-tight text-fg-subtle">
                       <span className="font-medium text-fg-muted">{monthNames.short[d.getUTCMonth()]} {d.getUTCDate()}</span>
                       <br />
-                      Week {Math.floor(diffDays(w, plan.startDate) / 7) + 1 > 0 ? Math.floor(diffDays(w, plan.startDate) / 7) + 1 : "—"}
+                      Week {Math.floor(diffDays(w, plan.startDate) / 7) + 1}
                     </div>
                   </div>
                 );
@@ -297,10 +298,12 @@ function TaskBar({
         "group absolute z-10 flex touch-none select-none items-center overflow-hidden rounded-md px-2 text-[11px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring",
         drag ? "cursor-grabbing shadow-md" : "cursor-grab",
         done
-          ? "bg-surface-3 text-fg-subtle"
+          ? "bg-surface-3 text-fg-subtle line-through"
           : task.priority === "high"
             ? "bg-accent text-accent-fg"
-            : "bg-fg/80 text-bg dark:bg-fg/70",
+            : task.priority === "medium"
+              ? "bg-[color-mix(in_oklab,var(--accent)_38%,var(--surface))] text-fg"
+              : "bg-surface-3 text-fg-muted ring-1 ring-inset ring-border-strong",
       )}
       title={`${task.title} · ${formatShort(task.startDate)} – ${formatShort(task.dueDate)}`}
     >

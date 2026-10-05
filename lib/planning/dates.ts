@@ -93,7 +93,7 @@ export function formatSpan(start: string, end: string): string {
   const days = diffDays(end, start) + 1;
   if (days < 14) return `${days} ${days === 1 ? "day" : "days"}`;
   const weeks = Math.round(days / 7);
-  if (weeks < 9) return `${weeks} weeks`;
+  if (weeks <= 16) return `${weeks} weeks`;
   const months = Math.round(days / 30.4);
   return `${months} months`;
 }

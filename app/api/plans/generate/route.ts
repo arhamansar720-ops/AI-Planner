@@ -1,12 +1,15 @@
 import { generatePlan, PlannerError, type PlannerEvent } from "@/lib/ai/planner";
 import { savePlan } from "@/lib/db/plans";
 import { getPreferences } from "@/lib/db/preferences";
-import { readJson, requireUser } from "@/lib/utils/api";
+import { jsonError, readJson, requireUser } from "@/lib/utils/api";
 import { pickModel } from "@/lib/ai/client";
 import { GenerateRequestSchema } from "@/lib/validation/api";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
+
+/** Plans a single account may generate per rolling hour. */
+const HOURLY_LIMIT = 20;
 
 /**
  * Streams plan generation as Server-Sent Events. Each structured piece of the
@@ -21,6 +24,15 @@ export async function POST(request: Request) {
 
   const { supabase, user } = auth;
   const input = body.data;
+
+  const since = new Date(Date.now() - 3_600_000).toISOString();
+  const { count } = await supabase
+    .from("plans")
+    .select("id", { count: "exact", head: true })
+    .gte("created_at", since);
+  if ((count ?? 0) >= HOURLY_LIMIT) {
+    return jsonError(429, "You’ve made a lot of plans in the last hour. Try again a little later.");
+  }
   const preferences = await getPreferences(supabase, user.id);
   const model = pickModel(input.model ?? preferences.model);
   const planId = crypto.randomUUID();

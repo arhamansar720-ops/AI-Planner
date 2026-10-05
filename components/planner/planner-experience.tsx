@@ -103,6 +103,12 @@ export function PlannerExperience({
     return () => window.removeEventListener(NEW_PLAN_EVENT, onNew);
   }, [reset]);
 
+  // History can restore this component under a pushed /plan/[id] URL (e.g. back
+  // from another page); load the real plan page for that URL instead.
+  useEffect(() => {
+    if (stage === "home" && pathname.startsWith("/plan/")) router.replace(pathname);
+  }, [pathname, stage, router]);
+
   // Browser back from /plan/[id] (pushed after generation) returns home.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- follow history navigation
@@ -175,7 +181,9 @@ export function PlannerExperience({
             exit={{ opacity: 0, transition: { duration: 0.6 } }}
             aria-hidden
           >
-            <div className="app-backdrop app-backdrop-mask absolute inset-0" />
+            <div className="app-grain absolute inset-0">
+              <div className="app-backdrop app-backdrop-mask absolute inset-0" />
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

@@ -138,7 +138,7 @@ export function AssistantPanel({ className }: { className?: string }) {
                 className={cn(m.role === "user" ? "flex justify-end" : "")}
               >
                 {m.role === "user" ? (
-                  <p className="max-w-[88%] whitespace-pre-wrap rounded-2xl rounded-br-md bg-surface-2 px-3.5 py-2 text-[13.5px] leading-relaxed text-fg">
+                  <p className="max-w-[88%] whitespace-pre-wrap rounded-2xl rounded-br-md border border-border bg-surface px-3.5 py-2 shadow-xs text-[13.5px] leading-relaxed text-fg">
                     {m.content}
                   </p>
                 ) : (
@@ -161,7 +161,7 @@ export function AssistantPanel({ className }: { className?: string }) {
             {pending && (
               <motion.div key="pending" className="flex flex-col gap-5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                 <div className="flex justify-end">
-                  <p className="max-w-[88%] whitespace-pre-wrap rounded-2xl rounded-br-md bg-surface-2 px-3.5 py-2 text-[13.5px] leading-relaxed">
+                  <p className="max-w-[88%] whitespace-pre-wrap rounded-2xl rounded-br-md border border-border bg-surface px-3.5 py-2 shadow-xs text-[13.5px] leading-relaxed">
                     {pending}
                   </p>
                 </div>

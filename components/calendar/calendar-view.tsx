@@ -122,7 +122,7 @@ export function CalendarView() {
                   }}
                   className={cn(
                     "size-8 rounded-lg text-xs font-medium transition-colors",
-                    on ? "bg-fg text-bg" : "bg-surface-2 text-fg-subtle hover:text-fg",
+                    on ? "bg-accent-soft text-accent ring-1 ring-inset ring-accent-line" : "bg-surface-2 text-fg-subtle line-through hover:text-fg",
                   )}
                 >
                   {name[0]}

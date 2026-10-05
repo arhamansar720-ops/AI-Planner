@@ -22,10 +22,12 @@ export function PlanHeader({ handoff }: { handoff: boolean }) {
           className="flex max-w-full items-start gap-2 text-[13px] text-fg-subtle"
           style={{ borderRadius: 8 }}
         >
-          <Quote className="mt-[3px] size-3 shrink-0" aria-hidden />
-          <span className="line-clamp-1" title={plan.prompt}>
+          <motion.span layout="position" className="mt-[3px] shrink-0">
+            <Quote className="size-3" aria-hidden />
+          </motion.span>
+          <motion.span layout="position" className="line-clamp-1" title={plan.prompt}>
             {plan.prompt}
-          </span>
+          </motion.span>
         </motion.p>
       )}
       <EditableTitle

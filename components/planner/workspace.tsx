@@ -103,7 +103,18 @@ function WorkspaceLayout({ handoff: initialHandoff }: { handoff: boolean }) {
           <span className="text-[13px] font-medium">{VIEWS.find((v) => v.id === view)?.label}</span>
         </div>
 
-        <main id="main" className="min-h-0 flex-1 overflow-y-auto scrollbar-thin">
+        <main id="main" className="relative min-h-0 flex-1 overflow-y-auto scrollbar-thin">
+          {initialHandoff && (
+            <motion.div
+              layoutId="plan-surface"
+              aria-hidden
+              className="glass pointer-events-none absolute inset-x-3 top-3 z-10 h-[calc(100%-24px)] sm:inset-x-6"
+              style={{ borderRadius: 28 }}
+              initial={{ opacity: 1 }}
+              animate={{ opacity: 0 }}
+              transition={{ ...spring.travel, opacity: { delay: 0.35, duration: 0.55, ease: ease.out } }}
+            />
+          )}
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={view}
@@ -139,12 +150,12 @@ function WorkspaceLayout({ handoff: initialHandoff }: { handoff: boolean }) {
       ) : (
         <>
           <motion.div
-            className="fixed bottom-5 right-5 z-30"
+            className="fixed bottom-4 right-4 z-30 sm:bottom-5 sm:right-5"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ ...spring.soft, delay: 0.4 }}
           >
-            <Button variant="primary" size="lg" className="rounded-full shadow-lg" onClick={() => setAssistantOpen(true)}>
+            <Button variant="primary" className="h-10 rounded-full px-4 shadow-lg sm:h-11 sm:px-5" onClick={() => setAssistantOpen(true)}>
               <Wand2 /> Ask AI
             </Button>
           </motion.div>

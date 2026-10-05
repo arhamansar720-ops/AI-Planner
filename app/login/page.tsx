@@ -13,7 +13,9 @@ export default async function LoginPage({ searchParams }: Props) {
 
   return (
     <main id="main" className="relative flex min-h-dvh items-center justify-center px-6 py-16">
-      <div className="app-backdrop app-backdrop-mask pointer-events-none fixed inset-0 -z-10" aria-hidden />
+      <div className="app-grain pointer-events-none fixed inset-0 -z-10" aria-hidden>
+        <div className="app-backdrop app-backdrop-mask absolute inset-0" />
+      </div>
       {isSupabaseConfigured() ? (
         <LoginForm next={safeNext(next)} linkError={error === "link"} />
       ) : (

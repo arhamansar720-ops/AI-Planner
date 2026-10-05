@@ -188,7 +188,7 @@ export function SettingsForm({
                       if (next.length > 6) return;
                       void save({ blockedWeekdays: next });
                     }}
-                    className={cn("size-8 rounded-lg text-xs font-medium transition-colors", off ? "bg-fg text-bg" : "bg-surface-2 text-fg-muted hover:text-fg")}
+                    className={cn("size-8 rounded-lg text-xs font-medium transition-colors", off ? "bg-accent-soft text-accent ring-1 ring-inset ring-accent-line" : "bg-surface-2 text-fg-muted hover:text-fg")}
                   >
                     {n[0]}
                   </button>
