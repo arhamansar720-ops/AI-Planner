@@ -559,7 +559,7 @@
           const top = H + i * R;
           if (r.ph) return `<div style="position:absolute;left:0;right:0;top:${top}px;height:${R}px;background:color-mix(in oklab,var(--surface-2) 60%,transparent)"></div><div style="position:absolute;top:${top + R / 2 - 2}px;height:4px;border-radius:9px;background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent-line);left:${x(r.ph.startDate)}px;width:${(D.diffDays(r.ph.endDate, r.ph.startDate) + 1) * dw}px"></div>`;
           const w = (D.diffDays(r.t.dueDate, r.t.startDate) + 1) * dw;
-          return `<div class="bar ${r.t.status === "done" ? "done" : r.t.priority}" style="top:${top + 7}px;left:${x(r.t.startDate)}px;width:${w}px" title="${esc(r.t.title)} · ${esc(D.formatShort(r.t.startDate))} – ${esc(D.formatShort(r.t.dueDate))}">${w > 70 ? esc(r.t.title) : ""}</div>`;
+          return `<div class="gbar ${r.t.status === "done" ? "done" : r.t.priority}" style="top:${top + 7}px;left:${x(r.t.startDate)}px;width:${w}px" title="${esc(r.t.title)} · ${esc(D.formatShort(r.t.startDate))} – ${esc(D.formatShort(r.t.dueDate))}">${w > 70 ? esc(r.t.title) : ""}</div>`;
         }).join("")}
       </div></div>
     </div>`;
