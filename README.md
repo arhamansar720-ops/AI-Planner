@@ -107,6 +107,10 @@ Tokens are in `app/globals.css`: near-black text on an off-white base, one restr
 
 To rename the product, edit `product` in `lib/config.ts`.
 
+## Claude test bench
+
+`npm run bench` builds `bench/dist/forma-bench.html`: a single-file version of the app that runs inside Claude as an artifact, with no server or database. It bundles the real assembler, prompts, schemas, scheduling engine and mutation reducer (`bench/engine.ts`), and calls Claude through the artifact `sample` capability on the viewer's own account. Plans are saved in the browser. Use it to try the generation flow and prompt changes without deploying.
+
 ## Current limitations
 
 - Notification preferences are saved, but this repository doesn't send email. Connect an email provider to deliver them.
