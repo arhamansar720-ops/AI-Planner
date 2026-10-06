@@ -4,8 +4,8 @@ import { Hero } from "@/components/landing/hero";
 import { LiveDemo } from "@/components/landing/live-demo";
 import { GoalsMarquee, SectionHeading } from "@/components/landing/sections";
 import { Highlights, ModesShowcase } from "@/components/landing/showcases";
-import { isSupabaseConfigured } from "@/lib/db/env";
-import { getSession } from "@/lib/db/server";
+import { isDatabaseConfigured } from "@/lib/db/env";
+import { getSession } from "@/lib/auth/session";
 import { product } from "@/lib/config";
 
 export const metadata: Metadata = {
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 export default async function HomePage() {
-  const signedIn = isSupabaseConfigured() ? Boolean((await getSession()).user) : false;
+  const signedIn = isDatabaseConfigured() ? Boolean((await getSession()).user) : false;
   return (
     <>
       <Hero signedIn={signedIn} />

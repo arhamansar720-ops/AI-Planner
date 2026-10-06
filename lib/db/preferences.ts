@@ -1,6 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import type { ServerSupabase } from "./server";
+import { query } from "./pool";
 
 export const PreferencesSchema = z.object({
   theme: z.enum(["light", "dark", "system"]),
@@ -26,8 +26,9 @@ export const DEFAULT_PREFERENCES: Preferences = {
   taskReminders: true,
 };
 
-export async function getPreferences(supabase: ServerSupabase, userId: string): Promise<Preferences> {
-  const { data } = await supabase.from("user_preferences").select("*").eq("user_id", userId).maybeSingle();
+export async function getPreferences(userId: string): Promise<Preferences> {
+  const { rows } = await query(`select * from user_preferences where user_id = $1`, [userId]);
+  const data = rows[0];
   if (!data) return DEFAULT_PREFERENCES;
   const parsed = PreferencesSchema.safeParse({
     theme: data.theme,
@@ -42,20 +43,22 @@ export async function getPreferences(supabase: ServerSupabase, userId: string): 
   return parsed.success ? parsed.data : { ...DEFAULT_PREFERENCES, ...(parsed.data ?? {}) };
 }
 
-export async function updatePreferences(
-  supabase: ServerSupabase,
-  userId: string,
-  patch: Partial<Preferences>,
-): Promise<void> {
-  const row: Record<string, unknown> = { user_id: userId, updated_at: new Date().toISOString() };
-  if (patch.theme !== undefined) row.theme = patch.theme;
-  if (patch.planningStyle !== undefined) row.planning_style = patch.planningStyle;
-  if (patch.defaultDurationWeeks !== undefined) row.default_duration_weeks = patch.defaultDurationWeeks;
-  if (patch.dailyMinutes !== undefined) row.daily_minutes = patch.dailyMinutes;
-  if (patch.blockedWeekdays !== undefined) row.blocked_weekdays = patch.blockedWeekdays;
-  if (patch.responseStyle !== undefined) row.response_style = patch.responseStyle;
-  if (patch.weeklySummary !== undefined) row.weekly_summary = patch.weeklySummary;
-  if (patch.taskReminders !== undefined) row.task_reminders = patch.taskReminders;
-  const { error } = await supabase.from("user_preferences").upsert(row, { onConflict: "user_id" });
-  if (error) throw error;
+export async function updatePreferences(userId: string, patch: Partial<Preferences>): Promise<void> {
+  const columns: Record<string, unknown> = {};
+  if (patch.theme !== undefined) columns.theme = patch.theme;
+  if (patch.planningStyle !== undefined) columns.planning_style = patch.planningStyle;
+  if (patch.defaultDurationWeeks !== undefined) columns.default_duration_weeks = patch.defaultDurationWeeks;
+  if (patch.dailyMinutes !== undefined) columns.daily_minutes = patch.dailyMinutes;
+  if (patch.blockedWeekdays !== undefined) columns.blocked_weekdays = patch.blockedWeekdays;
+  if (patch.responseStyle !== undefined) columns.response_style = patch.responseStyle;
+  if (patch.weeklySummary !== undefined) columns.weekly_summary = patch.weeklySummary;
+  if (patch.taskReminders !== undefined) columns.task_reminders = patch.taskReminders;
+  const names = Object.keys(columns);
+  if (!names.length) return;
+  // Column names come from the fixed list above, never from input.
+  await query(
+    `insert into user_preferences (user_id, ${names.join(", ")}) values ($1, ${names.map((_, i) => `$${i + 2}`).join(", ")})
+     on conflict (user_id) do update set ${names.map((n) => `${n} = excluded.${n}`).join(", ")}, updated_at = now()`,
+    [userId, ...Object.values(columns)],
+  );
 }

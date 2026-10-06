@@ -1,0 +1,41 @@
+# Render Blueprint: one Postgres database and the Forma web service.
+# In Render: New → Blueprint → pick this repository → Apply.
+databases:
+  - name: forma-db
+    # Free databases are deleted 30 days after creation unless upgraded.
+    # Change to a paid plan (e.g. basic-256mb) to keep your data.
+    plan: free
+    databaseName: forma
+    user: forma
+
+services:
+  - type: web
+    name: forma
+    runtime: node
+    plan: free
+    branch: claude/ai-planning-app-dang3u
+    buildCommand: npm ci && npm run build
+    # Applies db/migrations, then starts Next.js on Render's $PORT.
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: forma-db
+          property: connectionString
+      # Optional sign-in providers and password-reset email. Leave empty to
+      # skip; you can fill them in later under the service's Environment tab.
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: MICROSOFT_CLIENT_ID
+        sync: false
+      - key: MICROSOFT_CLIENT_SECRET
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false

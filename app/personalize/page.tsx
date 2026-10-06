@@ -3,15 +3,15 @@ import { redirect } from "next/navigation";
 import { PersonalizeView } from "@/components/personalize/personalize-view";
 import { TopNav } from "@/components/shell/top-nav";
 import { publicConnection, readConnections } from "@/lib/connections/store";
-import { getSession } from "@/lib/db/server";
+import { getSession } from "@/lib/auth/session";
 import { getAccountSetup, getNavUser } from "@/lib/db/user";
 
 export const metadata: Metadata = { title: "Personalize" };
 
 export default async function PersonalizePage() {
-  const { supabase, user } = await getSession();
+  const { user } = await getSession();
   if (!user) redirect("/login?next=/personalize");
-  const navUser = await getNavUser(supabase, user);
+  const navUser = await getNavUser(user);
 
   return (
     <div className="min-h-dvh">

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { ChatsView } from "@/components/chats/chats-view";
 import { TopNav } from "@/components/shell/top-nav";
 import { getMessages, listChats } from "@/lib/db/conversations";
-import { getSession } from "@/lib/db/server";
+import { getSession } from "@/lib/auth/session";
 import { getNavUser } from "@/lib/db/user";
 
 export const metadata: Metadata = { title: "Chats" };
@@ -37,12 +37,12 @@ function relative(iso: string, now: number) {
 }
 
 export default async function ChatsPage({ searchParams }: Props) {
-  const { supabase, user } = await getSession();
+  const { user } = await getSession();
   if (!user) redirect("/login?next=/chats");
   const { plan } = await searchParams;
-  const [navUser, chats] = await Promise.all([getNavUser(supabase, user), listChats(supabase).catch(() => [])]);
+  const [navUser, chats] = await Promise.all([getNavUser(user), listChats(user.id).catch(() => [])]);
   const selected = plan ? chats.find((c) => c.planId === plan) ?? null : null;
-  const messages = selected ? await getMessages(supabase, selected.planId, user.id).catch(() => []) : [];
+  const messages = selected ? await getMessages(user.id, selected.planId).catch(() => []) : [];
 
   return (
     <div className="min-h-dvh">

@@ -1,11 +1,19 @@
 import "server-only";
 import { PlanSchema, DEFAULT_CONSTRAINTS } from "@/lib/validation/plan";
 import type { Plan, PlanSummary } from "@/types/plan";
-import type { ServerSupabase } from "./server";
+import { query } from "./pool";
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- rows are validated by PlanSchema below */
 
-const PLAN_SELECT = "*, phases(*), tasks(*), milestones(*), resources(*), schedule_items(*)";
+/** A plan row with its children as JSON arrays. */
+const PLAN_SELECT = `
+  select p.*,
+    coalesce((select json_agg(x) from phases x where x.plan_id = p.id), '[]') as phases,
+    coalesce((select json_agg(x) from tasks x where x.plan_id = p.id), '[]') as tasks,
+    coalesce((select json_agg(x) from milestones x where x.plan_id = p.id), '[]') as milestones,
+    coalesce((select json_agg(x) from resources x where x.plan_id = p.id), '[]') as resources,
+    coalesce((select json_agg(x) from schedule_items x where x.plan_id = p.id), '[]') as schedule_items
+  from plans p`;
 
 function rowToPlan(row: any): Plan {
   const plan = {
@@ -81,26 +89,26 @@ function rowToPlan(row: any): Plan {
   return PlanSchema.parse(plan);
 }
 
-export async function getPlan(supabase: ServerSupabase, id: string): Promise<Plan | null> {
+export async function getPlan(userId: string, id: string): Promise<Plan | null> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
-  const { data, error } = await supabase.from("plans").select(PLAN_SELECT).eq("id", id).maybeSingle();
-  if (error) throw error;
-  return data ? rowToPlan(data) : null;
+  const { rows } = await query(`${PLAN_SELECT} where p.id = $1 and p.user_id = $2`, [id, userId]);
+  return rows[0] ? rowToPlan(rows[0]) : null;
 }
 
-export async function savePlan(supabase: ServerSupabase, plan: Plan): Promise<void> {
-  const { error } = await supabase.rpc("save_plan", { p_plan: plan });
-  if (error) throw error;
+/** Write the whole plan atomically (see save_plan in db/migrations). */
+export async function savePlan(userId: string, plan: Plan): Promise<void> {
+  await query(`select save_plan($1, $2::jsonb)`, [userId, JSON.stringify(plan)]);
 }
 
-export async function listPlans(supabase: ServerSupabase): Promise<PlanSummary[]> {
-  const { data, error } = await supabase
-    .from("plans")
-    .select("id, title, status, created_at, updated_at, start_date, end_date, tasks(status)")
-    .order("updated_at", { ascending: false })
-    .limit(200);
-  if (error) throw error;
-  return (data ?? []).map((row: any) => ({
+export async function listPlans(userId: string): Promise<PlanSummary[]> {
+  const { rows } = await query(
+    `select p.id, p.title, p.status, p.created_at, p.updated_at, p.start_date, p.end_date,
+       (select count(*) from tasks t where t.plan_id = p.id)::int as task_count,
+       (select count(*) from tasks t where t.plan_id = p.id and t.status = 'done')::int as done_count
+     from plans p where p.user_id = $1 order by p.updated_at desc limit 200`,
+    [userId],
+  );
+  return rows.map((row: any) => ({
     id: row.id,
     title: row.title,
     status: row.status,
@@ -108,18 +116,20 @@ export async function listPlans(supabase: ServerSupabase): Promise<PlanSummary[]
     updatedAt: row.updated_at,
     startDate: row.start_date,
     endDate: row.end_date,
-    taskCount: row.tasks?.length ?? 0,
-    doneCount: (row.tasks ?? []).filter((t: any) => t.status === "done").length,
+    taskCount: row.task_count,
+    doneCount: row.done_count,
   }));
 }
 
-export async function deletePlan(supabase: ServerSupabase, id: string): Promise<void> {
-  const { error } = await supabase.from("plans").delete().eq("id", id);
-  if (error) throw error;
+export async function deletePlan(userId: string, id: string): Promise<void> {
+  await query(`delete from plans where id = $1 and user_id = $2`, [id, userId]);
 }
 
-export async function exportPlans(supabase: ServerSupabase): Promise<Plan[]> {
-  const { data, error } = await supabase.from("plans").select(PLAN_SELECT).order("created_at");
-  if (error) throw error;
-  return (data ?? []).map(rowToPlan);
+export async function deleteAllPlans(userId: string): Promise<void> {
+  await query(`delete from plans where user_id = $1`, [userId]);
+}
+
+export async function exportPlans(userId: string): Promise<Plan[]> {
+  const { rows } = await query(`${PLAN_SELECT} where p.user_id = $1 order by p.created_at`, [userId]);
+  return rows.map(rowToPlan);
 }

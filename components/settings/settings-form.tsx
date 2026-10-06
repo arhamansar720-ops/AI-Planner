@@ -13,7 +13,6 @@ import { useToast } from "@/components/ui/toast";
 import { LocalModelSettings } from "@/components/settings/local-model-settings";
 import { getPersona, type PersonaId } from "@/lib/personas";
 import { PLANNING_STYLES } from "@/lib/config";
-import { getSupabaseBrowser } from "@/lib/db/browser";
 import { formatMinutes, weekdayNames } from "@/lib/planning/dates";
 import { cn } from "@/lib/utils/cn";
 
@@ -33,13 +32,11 @@ const SECTIONS = ["Account", "Appearance", "AI", "Notifications", "Data"] as con
 export function SettingsForm({
   email,
   displayName,
-  userId,
   initial,
   persona: personaId,
 }: {
   email: string;
   displayName: string;
-  userId: string;
   initial: SettingsPreferences;
   persona: PersonaId | null;
 }) {
@@ -73,8 +70,12 @@ export function SettingsForm({
   const saveName = async () => {
     const v = name.trim();
     if (!v || v === displayName) return;
-    const { error } = await getSupabaseBrowser().from("profiles").update({ display_name: v }).eq("id", userId);
-    if (error) toast({ message: "Couldn’t update your name.", tone: "error" });
+    const res = await fetch("/api/account", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: v }),
+    }).catch(() => null);
+    if (!res?.ok) toast({ message: "Couldn’t update your name.", tone: "error" });
     else {
       toast({ message: "Name updated" });
       router.refresh();

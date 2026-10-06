@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { listPlans, savePlan } from "@/lib/db/plans";
+import { listPlans, savePlan, deleteAllPlans } from "@/lib/db/plans";
+import { query } from "@/lib/db/pool";
 import { normalizePlan } from "@/lib/planning/schedule";
 import { jsonError, readJson, requireUser } from "@/lib/utils/api";
 import { CreatePlanRequestSchema } from "@/lib/validation/api";
@@ -11,7 +12,7 @@ const HOURLY_LIMIT = 30;
 export async function GET() {
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
-  return NextResponse.json({ plans: await listPlans(auth.supabase) });
+  return NextResponse.json({ plans: await listPlans(auth.user.id) });
 }
 
 /**
@@ -24,14 +25,11 @@ export async function POST(request: Request) {
   if ("error" in auth) return auth.error;
   const body = await readJson(request, CreatePlanRequestSchema);
   if ("error" in body) return body.error;
-  const { supabase } = auth;
-
-  const since = new Date(Date.now() - 3_600_000).toISOString();
-  const { count } = await supabase
-    .from("plans")
-    .select("id", { count: "exact", head: true })
-    .gte("created_at", since);
-  if ((count ?? 0) >= HOURLY_LIMIT) {
+  const { rows } = await query<{ count: number }>(
+    `select count(*)::int as count from plans where user_id = $1 and created_at > now() - interval '1 hour'`,
+    [auth.user.id],
+  );
+  if ((rows[0]?.count ?? 0) >= HOURLY_LIMIT) {
     return jsonError(429, "You’ve made a lot of plans in the last hour. Try again a little later.");
   }
 
@@ -41,7 +39,7 @@ export async function POST(request: Request) {
   );
   if (!parsed.success) return jsonError(400, "Invalid plan");
   try {
-    await savePlan(supabase, parsed.data);
+    await savePlan(auth.user.id, parsed.data);
     return NextResponse.json({ plan: parsed.data }, { status: 201 });
   } catch (error) {
     console.error("[plans] create failed", { error });
@@ -53,8 +51,9 @@ export async function POST(request: Request) {
 export async function DELETE() {
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
-  const { error } = await auth.supabase.from("plans").delete().eq("user_id", auth.user.id);
-  if (error) {
+  try {
+    await deleteAllPlans(auth.user.id);
+  } catch (error) {
     console.error("[plans] bulk delete failed", { error });
     return jsonError(500, "Could not delete plans");
   }

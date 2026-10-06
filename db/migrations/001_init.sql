@@ -1,25 +1,55 @@
--- Forma schema: users own plans; plans own phases, tasks, milestones,
--- resources, schedule items and an assistant conversation.
--- Every table carries user_id so row-level security stays simple and fast.
+-- Forma schema for a plain Postgres database (Render Postgres or any other).
+-- Accounts, sign-in and sessions are part of the app; every table carries
+-- user_id and the app scopes every query to the signed-in user.
 
 create extension if not exists pgcrypto;
 
 -- ---------------------------------------------------------------------------
--- Users
+-- Accounts
 -- ---------------------------------------------------------------------------
 
-create table public.profiles (
-  id uuid primary key references auth.users (id) on delete cascade,
+create table users (
+  id uuid primary key default gen_random_uuid(),
+  email text not null unique check (email = lower(email)),
+  password_hash text,
   display_name text,
   avatar_url text,
+  persona text,
+  onboarded_at timestamptz,
+  connections jsonb not null default '[]',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
-create table public.user_preferences (
-  user_id uuid primary key references auth.users (id) on delete cascade,
+-- Google / Microsoft identities linked to a user.
+create table oauth_accounts (
+  provider text not null,
+  provider_user_id text not null,
+  user_id uuid not null references users (id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (provider, provider_user_id)
+);
+create index oauth_accounts_user_idx on oauth_accounts (user_id);
+
+-- Sessions store only a SHA-256 of the cookie token.
+create table sessions (
+  id text primary key,
+  user_id uuid not null references users (id) on delete cascade,
+  expires_at timestamptz not null,
+  created_at timestamptz not null default now()
+);
+create index sessions_user_idx on sessions (user_id);
+
+create table password_resets (
+  token_hash text primary key,
+  user_id uuid not null references users (id) on delete cascade,
+  expires_at timestamptz not null,
+  used_at timestamptz
+);
+
+create table user_preferences (
+  user_id uuid primary key references users (id) on delete cascade,
   theme text not null default 'system' check (theme in ('light', 'dark', 'system')),
-  model text not null default 'claude-sonnet-5-5',
   planning_style text not null default 'balanced' check (planning_style in ('balanced', 'ambitious', 'gentle')),
   default_duration_weeks integer check (default_duration_weeks between 1 and 104),
   daily_minutes integer not null default 60 check (daily_minutes between 10 and 960),
@@ -30,13 +60,28 @@ create table public.user_preferences (
   updated_at timestamptz not null default now()
 );
 
+-- Every new user gets default preferences.
+create or replace function create_default_preferences()
+returns trigger
+language plpgsql
+as $$
+begin
+  insert into user_preferences (user_id) values (new.id) on conflict do nothing;
+  return new;
+end;
+$$;
+
+create trigger on_user_created
+  after insert on users
+  for each row execute function create_default_preferences();
+
 -- ---------------------------------------------------------------------------
 -- Plans
 -- ---------------------------------------------------------------------------
 
-create table public.plans (
+create table plans (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users (id) on delete cascade,
+  user_id uuid not null references users (id) on delete cascade,
   title text not null,
   description text not null default '',
   objective text not null default '',
@@ -55,25 +100,25 @@ create table public.plans (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-create index plans_user_created_idx on public.plans (user_id, created_at desc);
+create index plans_user_created_idx on plans (user_id, created_at desc);
 
-create table public.phases (
+create table phases (
   id uuid primary key,
-  plan_id uuid not null references public.plans (id) on delete cascade,
-  user_id uuid not null references auth.users (id) on delete cascade,
+  plan_id uuid not null references plans (id) on delete cascade,
+  user_id uuid not null references users (id) on delete cascade,
   title text not null,
   summary text not null default '',
   start_date date not null,
   end_date date not null,
   position integer not null default 0
 );
-create index phases_plan_idx on public.phases (plan_id);
+create index phases_plan_idx on phases (plan_id);
 
-create table public.tasks (
+create table tasks (
   id uuid primary key,
-  plan_id uuid not null references public.plans (id) on delete cascade,
-  phase_id uuid not null references public.phases (id) on delete cascade,
-  user_id uuid not null references auth.users (id) on delete cascade,
+  plan_id uuid not null references plans (id) on delete cascade,
+  phase_id uuid not null references phases (id) on delete cascade,
+  user_id uuid not null references users (id) on delete cascade,
   title text not null,
   description text not null default '',
   notes text not null default '',
@@ -88,131 +133,78 @@ create table public.tasks (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-create index tasks_plan_idx on public.tasks (plan_id);
+create index tasks_plan_idx on tasks (plan_id);
 
-create table public.milestones (
+create table milestones (
   id uuid primary key,
-  plan_id uuid not null references public.plans (id) on delete cascade,
-  phase_id uuid references public.phases (id) on delete set null,
-  user_id uuid not null references auth.users (id) on delete cascade,
+  plan_id uuid not null references plans (id) on delete cascade,
+  phase_id uuid references phases (id) on delete set null,
+  user_id uuid not null references users (id) on delete cascade,
   title text not null,
   description text not null default '',
   date date not null,
   reached boolean not null default false,
   position integer not null default 0
 );
-create index milestones_plan_idx on public.milestones (plan_id);
+create index milestones_plan_idx on milestones (plan_id);
 
-create table public.resources (
+create table resources (
   id uuid primary key,
-  plan_id uuid not null references public.plans (id) on delete cascade,
-  user_id uuid not null references auth.users (id) on delete cascade,
+  plan_id uuid not null references plans (id) on delete cascade,
+  user_id uuid not null references users (id) on delete cascade,
   title text not null,
   kind text not null default 'other' check (kind in ('link', 'book', 'tool', 'course', 'person', 'other')),
   url text,
   note text not null default '',
   position integer not null default 0
 );
-create index resources_plan_idx on public.resources (plan_id);
+create index resources_plan_idx on resources (plan_id);
 
-create table public.schedule_items (
+create table schedule_items (
   id text primary key,
-  plan_id uuid not null references public.plans (id) on delete cascade,
-  task_id uuid not null references public.tasks (id) on delete cascade,
-  user_id uuid not null references auth.users (id) on delete cascade,
+  plan_id uuid not null references plans (id) on delete cascade,
+  task_id uuid not null references tasks (id) on delete cascade,
+  user_id uuid not null references users (id) on delete cascade,
   date date not null,
   start_minute integer not null,
   duration_minutes integer not null
 );
-create index schedule_items_plan_idx on public.schedule_items (plan_id, date);
+create index schedule_items_plan_idx on schedule_items (plan_id, date);
 
 -- ---------------------------------------------------------------------------
 -- Assistant conversations
 -- ---------------------------------------------------------------------------
 
-create table public.conversations (
+create table conversations (
   id uuid primary key default gen_random_uuid(),
-  plan_id uuid not null unique references public.plans (id) on delete cascade,
-  user_id uuid not null references auth.users (id) on delete cascade,
+  plan_id uuid not null unique references plans (id) on delete cascade,
+  user_id uuid not null references users (id) on delete cascade,
   created_at timestamptz not null default now()
 );
 
-create table public.messages (
+create table messages (
   id uuid primary key default gen_random_uuid(),
-  conversation_id uuid not null references public.conversations (id) on delete cascade,
-  user_id uuid not null references auth.users (id) on delete cascade,
+  conversation_id uuid not null references conversations (id) on delete cascade,
+  user_id uuid not null references users (id) on delete cascade,
   role text not null check (role in ('user', 'assistant')),
   content text not null,
   changes jsonb not null default '[]',
   created_at timestamptz not null default now()
 );
-create index messages_conversation_idx on public.messages (conversation_id, created_at);
+create index messages_conversation_idx on messages (conversation_id, created_at);
 
 -- ---------------------------------------------------------------------------
--- Row-level security: owners only
+-- save_plan: write a whole plan aggregate atomically for one user.
 -- ---------------------------------------------------------------------------
 
-alter table public.profiles enable row level security;
-create policy "profiles_owner" on public.profiles
-  for all using (id = auth.uid()) with check (id = auth.uid());
-
-do $$
-declare t text;
-begin
-  foreach t in array array[
-    'user_preferences', 'plans', 'phases', 'tasks', 'milestones',
-    'resources', 'schedule_items', 'conversations', 'messages'
-  ] loop
-    execute format('alter table public.%I enable row level security', t);
-    execute format(
-      'create policy %I on public.%I for all using (user_id = auth.uid()) with check (user_id = auth.uid())',
-      t || '_owner', t
-    );
-  end loop;
-end $$;
-
--- ---------------------------------------------------------------------------
--- New users get a profile and default preferences
--- ---------------------------------------------------------------------------
-
-create or replace function public.handle_new_user()
-returns trigger
-language plpgsql
-security definer
-set search_path = public
-as $$
-begin
-  insert into public.profiles (id, display_name)
-  values (new.id, coalesce(new.raw_user_meta_data ->> 'display_name', split_part(new.email, '@', 1)));
-  insert into public.user_preferences (user_id) values (new.id);
-  return new;
-end;
-$$;
-
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute function public.handle_new_user();
-
--- ---------------------------------------------------------------------------
--- save_plan: write a whole plan aggregate atomically.
--- Runs as the caller (security invoker) so RLS still applies to every row.
--- ---------------------------------------------------------------------------
-
-create or replace function public.save_plan(p_plan jsonb)
+create or replace function save_plan(uid uuid, p_plan jsonb)
 returns timestamptz
 language plpgsql
-security invoker
-set search_path = public
 as $$
 declare
-  uid uuid := auth.uid();
   pid uuid := (p_plan ->> 'id')::uuid;
   saved_at timestamptz := now();
 begin
-  if uid is null then
-    raise exception 'not authenticated' using errcode = '28000';
-  end if;
-
   insert into plans as p (
     id, user_id, title, description, objective, prompt, status, priority,
     start_date, end_date, assumptions, priorities, next_actions, risks,
@@ -327,5 +319,3 @@ begin
   return saved_at;
 end;
 $$;
-
-grant execute on function public.save_plan(jsonb) to authenticated;

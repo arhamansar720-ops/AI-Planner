@@ -3,15 +3,15 @@ import { redirect } from "next/navigation";
 import { HistoryList } from "@/components/history/history-list";
 import { TopNav } from "@/components/shell/top-nav";
 import { listPlans } from "@/lib/db/plans";
-import { getSession } from "@/lib/db/server";
+import { getSession } from "@/lib/auth/session";
 import { getNavUser } from "@/lib/db/user";
 
 export const metadata: Metadata = { title: "History" };
 
 export default async function HistoryPage() {
-  const { supabase, user } = await getSession();
+  const { user } = await getSession();
   if (!user) redirect("/login?next=/history");
-  const [plans, navUser] = await Promise.all([listPlans(supabase), getNavUser(supabase, user)]);
+  const [plans, navUser] = await Promise.all([listPlans(user.id), getNavUser(user)]);
 
   return (
     <div className="min-h-dvh">

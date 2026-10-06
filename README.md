@@ -10,40 +10,34 @@ The app's home (`/app`) is a single prompt. When you submit, the prompt travels 
 
 ## Stack
 
-Next.js 16 (App Router, Turbopack) · TypeScript · Tailwind CSS 4 · Radix primitives in shadcn-style components · Framer Motion · Supabase (Postgres + Auth) · WebLLM (on-device Qwen3 8B over WebGPU) · Zod
+Next.js 16 (App Router, Turbopack) · TypeScript · Tailwind CSS 4 · Radix primitives in shadcn-style components · Framer Motion · Postgres (Render) with built-in auth (Arctic for Google/Microsoft) · WebLLM (on-device Qwen3 8B over WebGPU) · Zod
 
-## Getting started
+## Deploy on Render
 
-1. **Install**
+`render.yaml` is a Render Blueprint that creates a Postgres database and the web service, and connects them.
 
-   ```bash
-   npm install
-   cp .env.example .env.local
-   ```
+1. In Render, choose **New → Blueprint**, connect this GitHub repository and select **Apply**. Render creates `forma-db` and `forma`, builds the app, and on start the schema in `db/migrations` is applied automatically.
+2. Open the site at the `forma` service's `.onrender.com` address. Email sign-up works right away.
+3. **Optional: Google sign-in.** In Google Cloud Console → APIs & Services → Credentials, create an OAuth client (Web application) with the authorized redirect URI `https://<your-app>.onrender.com/auth/callback/google`. Put its ID and secret in the service's **Environment** tab as `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
+4. **Optional: Microsoft sign-in.** In the Azure portal → Microsoft Entra ID → App registrations, register an app (any organizational directory and personal Microsoft accounts) with the Web redirect URI `https://<your-app>.onrender.com/auth/callback/microsoft`, create a client secret, and set `MICROSOFT_CLIENT_ID` and `MICROSOFT_CLIENT_SECRET`.
+5. **Optional: password-reset email.** Create a free [Resend](https://resend.com) API key and set `RESEND_API_KEY` and `EMAIL_FROM`. Without them, “Forgot password?” is hidden.
 
-2. **Create a Supabase project** and fill in `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (the anon/publishable key) from *Project Settings → API*.
+Free-plan notes: a free web service sleeps after 15 minutes without visitors and takes about a minute to wake. **A free Render Postgres database is deleted 30 days after creation unless it's upgraded to a paid plan**, so upgrade `forma-db` before then to keep your data.
 
-3. **Apply the schema.** Either run `supabase db push` with the Supabase CLI, or paste `supabase/migrations/20261005000000_init.sql` into the SQL editor. It creates the tables, row-level security policies, the new-user trigger and the `save_plan` function.
+## Run locally
 
-4. **Configure auth redirects.** In *Authentication → URL Configuration*, set the Site URL to your app's URL and add `<your-url>/auth/callback` as a redirect URL (used by email confirmation, password resets and social sign-in).
-
-5. **Optional: Google and Microsoft sign-in.** The login page reads which providers are switched on in Supabase and only uses those.
-   - **Google:** create an OAuth client (Web application) in Google Cloud Console → APIs & Services → Credentials, with `https://<your-project>.supabase.co/auth/v1/callback` as the authorized redirect URI. Paste its client ID and secret into Supabase → *Authentication → Providers → Google* and enable it.
-   - **Microsoft:** register an app in the Azure portal (Microsoft Entra ID → App registrations), add the same Supabase callback URL as a Web redirect URI, create a client secret, and enter them in Supabase → *Authentication → Providers → Azure*.
-
-6. **Run it**
-
-   ```bash
-   npm run dev
-   ```
+1. `npm install`, then `cp .env.example .env.local`.
+2. Point `DATABASE_URL` at any Postgres 13+ database (a local one, or a Render database's *external* URL).
+3. `npm run db:migrate` to apply the schema (`npm start` also does this), then `npm run dev`.
 
 | Script | What it does |
 | --- | --- |
 | `npm run dev` | Development server |
-| `npm run build` / `npm start` | Production build and server |
+| `npm run build` / `npm start` | Production build; start applies migrations, then serves |
+| `npm run db:migrate` | Apply `db/migrations` to `DATABASE_URL` |
 | `npm run typecheck` | TypeScript |
 | `npm run lint` | ESLint |
-| `npm test` | Unit tests for the scheduling engine, mutations and AI schemas |
+| `npm test` | Unit tests: scheduling engine, mutations, AI schemas, calendars, voice text, passwords |
 
 ## How it works
 
@@ -61,7 +55,7 @@ There is no AI provider and no API key. Plans and assistant answers come from **
 
 New accounts go through `/setup` (`components/setup/setup-flow.tsx`) before their first plan: a mode (Student 📚, Professional 💼, Founder 🚀, Creator 🎨, Athlete 🏃, Life & home 🏡), daily time, pace, days off and a voice. Choices are made with `PressTile` (`components/ui/press-tile.tsx`), a physical key that lifts and tilts on hover and sinks into its base when pressed.
 
-Modes are defined in `lib/personas.ts`. A mode adds guidance to the planning prompt, changes the home screen's starting suggestions and proposes default time and pace. It is stored in the account's Supabase user metadata, so no table change is needed; time, pace and days off go to `user_preferences`. Settings shows the mode and can reopen setup.
+Modes are defined in `lib/personas.ts`. A mode adds guidance to the planning prompt, changes the home screen's starting suggestions and proposes default time and pace. It is stored on the account (`users.persona`); time, pace and days off go to `user_preferences`. Settings shows the mode and can reopen setup.
 
 ### Voice
 
@@ -98,7 +92,9 @@ The deterministic engine in `lib/planning/schedule.ts` handles everything derive
 
 ### Data
 
-Supabase Postgres with RLS on every table (`user_id = auth.uid()`). Tables: `profiles`, `user_preferences`, `plans`, `phases`, `tasks`, `milestones`, `resources`, `schedule_items`, `conversations`, `messages`. A plan is written atomically by the `save_plan(jsonb)` function, which runs as the caller so RLS still applies.
+Plain Postgres (Render Postgres in production), schema in `db/migrations`, applied by `scripts/migrate.mjs` on start. Every table carries `user_id`, and every query in `lib/db/` is scoped to the signed-in user (tested: one account can't read, change or delete another's plans or chats). Tables: `users`, `oauth_accounts`, `sessions`, `password_resets`, `user_preferences`, `plans`, `phases`, `tasks`, `milestones`, `resources`, `schedule_items`, `conversations`, `messages`. A plan is written atomically by the `save_plan(user, plan)` function.
+
+**Auth** (`lib/auth/`): passwords are hashed with scrypt; sessions are random tokens in an HttpOnly cookie, stored only as SHA-256 hashes and revocable (signing out deletes the session; a password reset signs out everywhere). Google and Microsoft use OAuth with PKCE and state (`/auth/oauth/[provider]` → `/auth/callback/[provider]`). A Google account links to an existing account only when Google has verified the email. Sign-in, sign-up and reset requests are rate-limited.
 
 ## Project structure
 
@@ -119,10 +115,13 @@ lib/
   ai/                 assembler, prompts, schemas, operations; local/ = on-device engine, planner, assistant
   connections/        calendar feed providers, safe fetcher, iCal reader/writer
   planning/           dates, scheduling engine, mutations, selectors, stages
-  db/                 Supabase clients and repositories
+  auth/               passwords, sessions, OAuth providers, rate limiting, email
+  db/                 Postgres pool and repositories (users, plans, chats, preferences)
   validation/         Zod schemas for the domain and API
   motion.ts           shared motion primitives
-supabase/migrations/  schema
+db/migrations/        schema (applied on start)
+scripts/migrate.mjs   migration runner
+render.yaml           Render Blueprint (database + web service)
 tests/                node:test unit tests
 ```
 
@@ -136,7 +135,7 @@ To rename the product, edit `product` in `lib/config.ts`.
 
 - **Marketing site** (`app/(marketing)/`): `/` (home), `/features`, `/how-it-works` and `/pricing`, sharing one nav and footer (`components/landing/`). The live demo is the real planning canvas replaying a streamed plan (`components/landing/demo-plan.ts`) through the real `PlanAssembler`. Signed-in visitors see **Open app** and their account menu instead of **Sign in**. Animations in `components/reactbits/` come from [React Bits](https://github.com/DavidHDev/react-bits) (MIT + Commons Clause, see the license file there). The pricing tiers are placeholders: no payment provider is connected.
 - **The app** lives at `/app` (the prompt and planning canvas), with `/plan/[id]`, `/chats`, `/history`, `/personalize`, `/settings` and `/setup`.
-- **Sign-in** (`/login`): email and password, password reset (`/reset-password`), and Google or Microsoft when enabled in Supabase.
+- **Sign-in** (`/login`): email and password, password reset (`/reset-password`), and Google or Microsoft when their credentials are set.
 
 ### Account menu and Personalize
 
@@ -154,7 +153,7 @@ Appearance and accessibility choices are stored on the device (`lib/appearance.t
 
 Read-only, with no third-party API keys:
 
-- **Calendar feeds:** Schoology, Canvas, Outlook, Google Calendar and Apple Calendar can all publish a private iCal link. Forma stores the link in the account's user metadata and reads upcoming items from it on the server (`lib/connections/`). The fetcher accepts only HTTPS, checks every resolved address inside the connection's own DNS lookup so it can't be pointed at private networks, follows at most three redirects and caps size and time.
+- **Calendar feeds:** Schoology, Canvas, Outlook, Google Calendar and Apple Calendar can all publish a private iCal link. Forma stores the link on the account and reads upcoming items from it on the server (`lib/connections/`). The fetcher accepts only HTTPS, checks every resolved address inside the connection's own DNS lookup so it can't be pointed at private networks, follows at most three redirects and caps size and time.
 - **Skyward** has no public feed, so its assignments page is pasted and kept on the device.
 - **Using them:** in the prompt box, *Add context → Connected tools* attaches upcoming deadlines to a new plan.
 - **The other direction:** every plan has *Add to calendar* (`/api/plans/[id]/calendar`), an .ics file for Outlook, Google or Apple Calendar.

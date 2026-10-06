@@ -4,7 +4,7 @@ import type { WorkspaceView } from "@/components/planner/plan-store";
 import { Workspace } from "@/components/planner/workspace";
 import { TopNav } from "@/components/shell/top-nav";
 import { getPlan } from "@/lib/db/plans";
-import { getSession } from "@/lib/db/server";
+import { getSession } from "@/lib/auth/session";
 import { getNavUser } from "@/lib/db/user";
 
 const VIEWS: WorkspaceView[] = ["overview", "timeline", "tasks", "calendar", "milestones", "resources", "notes"];
@@ -13,17 +13,17 @@ type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ view?: s
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const { supabase, user } = await getSession();
+  const { user } = await getSession();
   if (!user) return {};
-  const plan = await getPlan(supabase, id).catch(() => null);
+  const plan = await getPlan(user.id, id).catch(() => null);
   return { title: plan?.title ?? "Plan" };
 }
 
 export default async function PlanPage({ params, searchParams }: Props) {
   const [{ id }, { view }] = await Promise.all([params, searchParams]);
-  const { supabase, user } = await getSession();
+  const { user } = await getSession();
   if (!user) redirect(`/login?next=/plan/${id}`);
-  const [plan, navUser] = await Promise.all([getPlan(supabase, id), getNavUser(supabase, user)]);
+  const [plan, navUser] = await Promise.all([getPlan(user.id, id), getNavUser(user)]);
   if (!plan) notFound();
 
   return (

@@ -8,35 +8,34 @@ import { Wordmark } from "@/components/ui/brand";
 import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/ui/controls";
 import { Input, Label } from "@/components/ui/field";
-import { getSupabaseBrowser } from "@/lib/db/browser";
 import { ease } from "@/lib/motion";
 import { PERSONAS } from "@/lib/personas";
 
 type Mode = "signin" | "signup" | "forgot";
-type Provider = "google" | "azure";
+type Provider = "google" | "microsoft";
 
-const PROVIDER_LABEL: Record<Provider, string> = { google: "Google", azure: "Microsoft" };
+const PROVIDER_LABEL: Record<Provider, string> = { google: "Google", microsoft: "Microsoft" };
 
 export function LoginForm({
   next,
-  linkError,
+  initialError,
   initialMode,
   providers,
+  canReset,
 }: {
   next: string;
-  linkError: boolean;
+  initialError: string | null;
   initialMode: "signin" | "signup";
   providers: Record<Provider, boolean>;
+  canReset: boolean;
 }) {
   const [mode, setMode] = useState<Mode>(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState<null | "email" | Provider>(null);
-  const [error, setError] = useState<string | null>(linkError ? "That sign-in link has expired. Please sign in again." : null);
-  const [sent, setSent] = useState<null | "confirm" | "reset">(null);
-
-  const callback = () => `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
+  const [error, setError] = useState<string | null>(initialError);
+  const [sent, setSent] = useState<null | "reset">(null);
 
   const oauth = async (provider: Provider) => {
     setError(null);
@@ -45,60 +44,40 @@ export function LoginForm({
       return;
     }
     setLoading(provider);
-    const { error } = await getSupabaseBrowser().auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo: callback(),
-        scopes: provider === "azure" ? "email" : undefined,
-        queryParams: provider === "google" ? { prompt: "select_account" } : undefined,
-      },
-    });
-    if (error) {
-      setLoading(null);
-      setError(`Couldn’t reach ${PROVIDER_LABEL[provider]}. Please try again.`);
-    }
+    // A full navigation: the server redirects on to Google or Microsoft.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+    window.location.assign(`/auth/oauth/${provider}?next=${encodeURIComponent(next)}`);
+  };
+
+  const post = async (path: string, body: object) => {
+    const res = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const data = (await res.json().catch(() => ({}))) as { error?: string };
+    if (!res.ok) throw new Error(data.error || "Something went wrong. Please try again.");
   };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading("email");
-    const supabase = getSupabaseBrowser();
     try {
       if (mode === "forgot") {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent("/reset-password")}`,
-        });
-        if (error) throw error;
+        await post("/api/auth/reset-request", { email });
         setSent("reset");
       } else if (mode === "signin") {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) {
-          setError(error.message.toLowerCase().includes("confirm") ? "Please confirm your email first. Check your inbox." : "That email and password don’t match.");
-          return;
-        }
+        await post("/api/auth/signin", { email, password });
         window.location.assign(next);
       } else {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: { emailRedirectTo: callback(), data: { display_name: name.trim() || undefined } },
-        });
-        if (error) {
-          setError(error.message.includes("already") ? "An account with that email already exists. Try signing in." : error.message);
-          return;
-        }
-        if (data.session) window.location.assign(next);
-        else setSent("confirm");
+        await post("/api/auth/signup", { email, password, name: name.trim() || undefined });
+        window.location.assign(next);
       }
-    } catch {
-      setError("Something went wrong. Please try again.");
+    } catch (err) {
+      setError((err as Error).message);
     } finally {
       setLoading(null);
     }
   };
 
-  const anyProvider = providers.google || providers.azure;
+  const anyProvider = providers.google || providers.microsoft;
 
   return (
     <div className="grid w-full lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
@@ -116,8 +95,8 @@ export function LoginForm({
                 </span>
                 <h1 className="mt-5 text-[24px] font-semibold tracking-[-0.03em]">Check your email</h1>
                 <p className="mt-2 text-[14.5px] leading-relaxed text-fg-muted">
-                  {sent === "confirm" ? "We sent a confirmation link to " : "We sent a password reset link to "}
-                  <span className="text-fg">{email}</span>. Open it on this device to continue.
+                  If there’s an account for <span className="text-fg">{email}</span>, we’ve sent it a link to choose a new
+                  password. It expires in an hour.
                 </p>
                 <button
                   type="button"
@@ -165,7 +144,7 @@ export function LoginForm({
                     />
                     <div className="mt-6 flex flex-col gap-2.5">
                       <OAuthButton provider="google" loading={loading === "google"} disabled={loading !== null} enabled={providers.google} onClick={() => oauth("google")} />
-                      <OAuthButton provider="azure" loading={loading === "azure"} disabled={loading !== null} enabled={providers.azure} onClick={() => oauth("azure")} />
+                      <OAuthButton provider="microsoft" loading={loading === "microsoft"} disabled={loading !== null} enabled={providers.microsoft} onClick={() => oauth("microsoft")} />
                     </div>
                     <div className="my-6 flex items-center gap-3 text-xs text-fg-subtle" aria-hidden>
                       <span className="h-px flex-1 bg-border" />
@@ -190,7 +169,7 @@ export function LoginForm({
                     <div className="flex flex-col gap-1.5">
                       <div className="flex items-baseline justify-between">
                         <Label htmlFor="password">Password</Label>
-                        {mode === "signin" && (
+                        {mode === "signin" && canReset && (
                           <button type="button" onClick={() => setMode("forgot")} className="text-xs text-fg-muted underline-offset-4 hover:text-fg hover:underline">
                             Forgot password?
                           </button>
@@ -232,7 +211,7 @@ export function LoginForm({
                 </form>
                 {mode === "signup" && (
                   <p className="mt-5 text-center text-xs leading-relaxed text-fg-subtle">
-                    By creating an account you agree to use Forma responsibly. Your plans are private to your account.
+                    Your plans are private to your account.
                   </p>
                 )}
               </motion.div>

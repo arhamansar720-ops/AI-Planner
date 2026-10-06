@@ -2,10 +2,10 @@ import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { pickHeading } from "@/components/home/phrases";
 import { PlannerExperience } from "@/components/planner/planner-experience";
-import { isSupabaseConfigured } from "@/lib/db/env";
+import { isDatabaseConfigured } from "@/lib/db/env";
 import { listPlans } from "@/lib/db/plans";
 import { DEFAULT_PREFERENCES, getPreferences } from "@/lib/db/preferences";
-import { getSession } from "@/lib/db/server";
+import { getSession } from "@/lib/auth/session";
 import { getAccountSetup, getNavUser } from "@/lib/db/user";
 import type { PersonaId } from "@/lib/personas";
 
@@ -16,7 +16,7 @@ export default async function HomePage() {
   let recentPlans: Awaited<ReturnType<typeof listPlans>> = [];
   let persona: PersonaId | null = null;
 
-  if (isSupabaseConfigured()) {
+  if (isDatabaseConfigured()) {
     const session = await getSession();
     if (session.user) {
       const setup = getAccountSetup(session.user);
@@ -24,9 +24,9 @@ export default async function HomePage() {
       if (!setup.onboarded) redirect("/setup");
       persona = setup.persona;
       const [navUser, prefs, plans] = await Promise.all([
-        getNavUser(session.supabase, session.user),
-        getPreferences(session.supabase, session.user.id),
-        listPlans(session.supabase).catch(() => []),
+        getNavUser(session.user),
+        getPreferences(session.user.id),
+        listPlans(session.user.id).catch(() => []),
       ]);
       user = navUser;
       preferences = prefs;

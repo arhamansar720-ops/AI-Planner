@@ -82,5 +82,5 @@ export function getProvider(id: string) {
   return PROVIDERS.find((p) => p.id === id) ?? null;
 }
 
-/** A connected calendar feed, stored in the account's user metadata. */
+/** A connected calendar feed, stored on the account (users.connections). */
 export type StoredConnection = { id: string; provider: ProviderId; url: string; addedAt: string };

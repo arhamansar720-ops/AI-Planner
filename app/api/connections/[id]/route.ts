@@ -31,7 +31,7 @@ export async function DELETE(_request: Request, { params }: Context) {
   if ("error" in auth) return auth.error;
   const { id } = await params;
   try {
-    await writeConnections(auth.supabase, readConnections(auth.user).filter((c) => c.id !== id));
+    await writeConnections(auth.user, readConnections(auth.user).filter((c) => c.id !== id));
     return new NextResponse(null, { status: 204 });
   } catch (error) {
     console.error("[connections] disconnect failed", { error });

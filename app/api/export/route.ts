@@ -5,7 +5,7 @@ export async function GET() {
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   try {
-    const plans = await exportPlans(auth.supabase);
+    const plans = await exportPlans(auth.user.id);
     const body = JSON.stringify({ exportedAt: new Date().toISOString(), plans }, null, 2);
     return new Response(body, {
       headers: {

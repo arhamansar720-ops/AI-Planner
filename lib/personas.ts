@@ -3,7 +3,7 @@ import type { PlanningStyle } from "./config";
 /**
  * Who someone is planning as. Chosen during setup; it shapes the planner's
  * guidance, the starting suggestions on the home screen and the defaults the
- * setup flow proposes. Stored in the account's user metadata.
+ * setup flow proposes. Stored on the account (users.persona).
  */
 export const PERSONAS = [
   {

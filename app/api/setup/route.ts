@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { PreferencesSchema, updatePreferences } from "@/lib/db/preferences";
+import { updateUser } from "@/lib/db/users";
 import { PERSONA_IDS } from "@/lib/personas";
 import { jsonError, readJson, requireUser } from "@/lib/utils/api";
 
@@ -16,11 +17,8 @@ export async function POST(request: Request) {
   if ("error" in body) return body.error;
   const { persona, ...prefs } = body.data;
   try {
-    await updatePreferences(auth.supabase, auth.user.id, prefs);
-    const { error } = await auth.supabase.auth.updateUser({
-      data: { persona, onboarded_at: new Date().toISOString() },
-    });
-    if (error) throw error;
+    await updatePreferences(auth.user.id, prefs);
+    await updateUser(auth.user.id, { persona, onboardedAt: new Date().toISOString() });
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("[setup] save failed", { error });
@@ -36,8 +34,9 @@ export async function PATCH(request: Request) {
   if ("error" in auth) return auth.error;
   const body = await readJson(request, PersonaSchema);
   if ("error" in body) return body.error;
-  const { error } = await auth.supabase.auth.updateUser({ data: { persona: body.data.persona } });
-  if (error) {
+  try {
+    await updateUser(auth.user.id, { persona: body.data.persona });
+  } catch (error) {
     console.error("[setup] persona update failed", { error });
     return jsonError(500, "Could not save your mode");
   }

@@ -10,7 +10,7 @@ export async function GET(_request: Request, { params }: Context) {
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { id } = await params;
-  const plan = await getPlan(auth.supabase, id);
+  const plan = await getPlan(auth.user.id, id);
   return plan ? NextResponse.json({ plan }) : jsonError(404, "Not found");
 }
 
@@ -23,10 +23,10 @@ export async function PATCH(request: Request, { params }: Context) {
   const { id } = await params;
 
   try {
-    let plan = await getPlan(auth.supabase, id);
+    let plan = await getPlan(auth.user.id, id);
     if (!plan) return jsonError(404, "Not found");
     for (const mutation of body.data.mutations) plan = applyMutation(plan, mutation);
-    await savePlan(auth.supabase, plan);
+    await savePlan(auth.user.id, plan);
     return NextResponse.json({ updatedAt: plan.updatedAt });
   } catch (error) {
     if (error instanceof MutationError) return jsonError(422, error.message);
@@ -40,7 +40,7 @@ export async function DELETE(_request: Request, { params }: Context) {
   if ("error" in auth) return auth.error;
   const { id } = await params;
   try {
-    await deletePlan(auth.supabase, id);
+    await deletePlan(auth.user.id, id);
     return new NextResponse(null, { status: 204 });
   } catch (error) {
     console.error("[plans] delete failed", { planId: id, error });

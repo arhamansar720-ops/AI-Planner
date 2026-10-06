@@ -8,7 +8,7 @@ export async function PATCH(request: Request) {
   const body = await readJson(request, PreferencesSchema.partial());
   if ("error" in body) return body.error;
   try {
-    await updatePreferences(auth.supabase, auth.user.id, body.data);
+    await updatePreferences(auth.user.id, body.data);
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("[preferences] update failed", { error });

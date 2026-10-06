@@ -1,21 +1,17 @@
 import "server-only";
-import type { User } from "@supabase/supabase-js";
-import type { ServerSupabase } from "@/lib/db/server";
+import { updateUser, type AppUser } from "@/lib/db/users";
 import { getProvider, type StoredConnection } from "./providers";
 
-/** Calendar feeds live in the account's user metadata: small, private to the account. */
-export function readConnections(user: User): StoredConnection[] {
-  const raw = (user.user_metadata as { connections?: unknown }).connections;
-  if (!Array.isArray(raw)) return [];
-  return raw.filter(
+/** Calendar feeds connected to the account. */
+export function readConnections(user: AppUser): StoredConnection[] {
+  return user.connections.filter(
     (c): c is StoredConnection =>
       Boolean(c) && typeof c.id === "string" && typeof c.url === "string" && getProvider(c.provider)?.kind === "feed",
   );
 }
 
-export async function writeConnections(supabase: ServerSupabase, connections: StoredConnection[]) {
-  const { error } = await supabase.auth.updateUser({ data: { connections } });
-  if (error) throw error;
+export async function writeConnections(user: AppUser, connections: StoredConnection[]) {
+  await updateUser(user.id, { connections });
 }
 
 /** What the browser sees: never the secret feed address itself. */

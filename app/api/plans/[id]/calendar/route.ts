@@ -9,7 +9,7 @@ export async function GET(_request: Request, { params }: Context) {
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { id } = await params;
-  const plan = await getPlan(auth.supabase, id);
+  const plan = await getPlan(auth.user.id, id);
   if (!plan) return jsonError(404, "Not found");
 
   const items: CalendarItem[] = [

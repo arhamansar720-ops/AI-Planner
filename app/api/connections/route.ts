@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     const events = upcoming(parseIcs(await fetchFeed(url)), localToday());
     const existing = readConnections(auth.user).filter((c) => c.provider !== body.data.provider);
     const connection = { id: crypto.randomUUID(), provider: body.data.provider, url, addedAt: new Date().toISOString() };
-    await writeConnections(auth.supabase, [...existing, connection].slice(-10));
+    await writeConnections(auth.user, [...existing, connection].slice(-10));
     return NextResponse.json({ connection: publicConnection(connection), upcoming: events.length, preview: events.slice(0, 5) });
   } catch (error) {
     if (error instanceof FeedError) return jsonError(422, error.message);
