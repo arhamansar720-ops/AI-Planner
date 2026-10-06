@@ -138,11 +138,19 @@ export function MarketingNav({ user }: { user: MenuUser | null }) {
 export function MarketingFooter() {
   const year = new Date().getFullYear();
   return (
-    <footer className="border-t border-border">
-      <div className="mx-auto grid max-w-[1180px] gap-10 px-4 py-12 sm:px-5 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
-        <div className="flex flex-col gap-3">
+    <footer className="relative overflow-hidden border-t border-border">
+      <div className="mx-auto grid max-w-[1120px] gap-10 px-4 pb-10 pt-14 sm:px-5 md:grid-cols-[1.6fr_1fr_1fr_1fr]">
+        <div className="flex flex-col gap-4">
           <Wordmark />
-          <p className="max-w-[260px] text-[13px] leading-relaxed text-fg-subtle">{product.tagline} Private by design: the AI runs on your device.</p>
+          <p className="max-w-[280px] text-[14px] leading-relaxed text-fg-muted">
+            {product.tagline} Planning that runs on your own device and keeps up with your weeks.
+          </p>
+          <Link
+            href="/login?mode=signup"
+            className="group mt-1 inline-flex w-fit items-center gap-1.5 text-[14px] font-medium text-fg transition-colors hover:text-accent"
+          >
+            Start planning <span className="transition-transform group-hover:translate-x-0.5">→</span>
+          </Link>
         </div>
         <FooterColumn
           title="Product"
@@ -153,6 +161,14 @@ export function MarketingFooter() {
           ]}
         />
         <FooterColumn
+          title="Features"
+          links={[
+            ["/features#connections", "Connections"],
+            ["/features#voice", "Voice"],
+            ["/features#privacy", "Privacy"],
+          ]}
+        />
+        <FooterColumn
           title="Account"
           links={[
             ["/login", "Sign in"],
@@ -160,25 +176,33 @@ export function MarketingFooter() {
             ["/app", "Open the app"],
           ]}
         />
-        <div className="flex flex-col gap-2.5 text-[13px]">
-          <p className="font-medium text-fg">Credits</p>
-          <p className="leading-relaxed text-fg-subtle">
-            Animations from{" "}
-            <a href="https://reactbits.dev" className="underline underline-offset-2 hover:text-fg">
-              React Bits
-            </a>
-            . © {year} {product.name}.
-          </p>
-        </div>
       </div>
+      <div className="mx-auto flex max-w-[1120px] flex-col gap-2 border-t border-border px-4 py-6 font-mono text-[11.5px] text-fg-subtle sm:flex-row sm:items-center sm:justify-between sm:px-5">
+        <span>
+          © {year} {product.name}
+        </span>
+        <span>
+          Animations from{" "}
+          <a href="https://reactbits.dev" className="underline underline-offset-2 hover:text-fg">
+            React Bits
+          </a>
+        </span>
+      </div>
+      {/* An oversized, quiet wordmark to close the page. */}
+      <p
+        className="pointer-events-none select-none px-4 text-center text-[clamp(5rem,22vw,17rem)] font-semibold leading-[0.75] tracking-[-0.06em] text-transparent [-webkit-text-stroke:1px_var(--border-strong)] [mask-image:linear-gradient(to_bottom,black_30%,transparent)]"
+        aria-hidden
+      >
+        {product.name}
+      </p>
     </footer>
   );
 }
 
 function FooterColumn({ title, links }: { title: string; links: [string, string][] }) {
   return (
-    <div className="flex flex-col gap-2.5 text-[13px]">
-      <p className="font-medium text-fg">{title}</p>
+    <div className="flex flex-col gap-3 text-[14px]">
+      <p className="font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-fg-subtle">{title}</p>
       {links.map(([href, label]) => (
         <Link key={href} href={href} className="text-fg-muted transition-colors hover:text-fg">
           {label}

@@ -50,9 +50,10 @@ export function RotatingWord({
   return (
     <span className={cn("relative inline-flex", className)}>
       {/* Invisible copies used only for measuring. */}
-      <span ref={measureRef} aria-hidden className="pointer-events-none invisible absolute left-0 top-0 flex whitespace-nowrap">
+      <span ref={measureRef} aria-hidden className="pointer-events-none invisible absolute left-0 top-0 flex w-max whitespace-nowrap">
         {words.map((w) => (
-          <span key={w} className="px-[0.32em]">
+          // shrink-0: measured at full width even when the row is wider than the screen.
+          <span key={w} className="shrink-0 px-[0.32em]">
             {w}
           </span>
         ))}

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { FinalCta } from "@/components/landing/final-cta";
-import { Pricing } from "@/components/landing/pricing";
+import { Pricing, PricingComparison } from "@/components/landing/pricing";
 import { SectionHeading } from "@/components/landing/sections";
 import { Faq, PageHeader } from "@/components/landing/showcases";
 
@@ -20,7 +20,11 @@ export default function PricingPage() {
       <section className="px-4 pb-24">
         <Pricing />
       </section>
-      <section aria-labelledby="faq-title" className="px-4 pb-10">
+      <section aria-labelledby="compare-title" className="border-t border-border px-4 pb-24 pt-20 sm:pt-28">
+        <SectionHeading id="compare-title" eyebrow="Compare" title="Every plan, side by side" />
+        <PricingComparison />
+      </section>
+      <section aria-labelledby="faq-title" className="border-t border-border px-4 pb-10 pt-20 sm:pt-28">
         <SectionHeading id="faq-title" eyebrow="Questions" title="Pricing, answered" />
         <Faq items={FAQ} />
       </section>

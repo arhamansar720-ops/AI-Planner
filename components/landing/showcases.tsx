@@ -1,17 +1,16 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, ArrowUp, CalendarPlus, Mic, Volume2 } from "lucide-react";
-import Link from "next/link";
+import { ArrowUp, CalendarPlus, Mic, Volume2 } from "lucide-react";
 import { useState, useSyncExternalStore } from "react";
 import BlurText from "@/components/reactbits/BlurText";
-import SpotlightCard from "@/components/reactbits/SpotlightCard";
 import { PALETTES, setAppearance, useAppearance } from "@/components/shell/appearance";
 import { PressTile } from "@/components/ui/press-tile";
 import { PROVIDERS } from "@/lib/connections/providers";
 import { ease } from "@/lib/motion";
 import { PERSONAS, type PersonaId } from "@/lib/personas";
 import { cn } from "@/lib/utils/cn";
+import { Eyebrow } from "./sections";
 import { speak, speechSupported, stopSpeaking, useSpeakingId } from "@/lib/voice/speech";
 
 const noop = () => () => {};
@@ -20,30 +19,27 @@ const noop = () => () => {};
 
 export function PageHeader({ eyebrow, title, lede }: { eyebrow: string; title: string; lede: string }) {
   return (
-    <header className="relative isolate px-4 pb-14 pt-16 text-center sm:pb-20 sm:pt-24">
+    <header className="relative isolate px-4 pb-16 pt-16 sm:pb-24 sm:pt-24">
       <div
-        className="pointer-events-none absolute left-1/2 top-10 -z-10 h-[300px] w-[640px] max-w-full -translate-x-1/2 rounded-full bg-accent opacity-[0.07] blur-[100px] dark:opacity-[0.13]"
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[520px] [background-image:linear-gradient(var(--grid-line)_1px,transparent_1px),linear-gradient(90deg,var(--grid-line)_1px,transparent_1px)] [background-size:56px_56px] [mask-image:radial-gradient(ellipse_70%_60%_at_30%_20%,black,transparent)]"
         aria-hidden
       />
-      <motion.p
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: ease.expo }}
-        className="text-[13px] font-medium text-accent"
-      >
-        {eyebrow}
-      </motion.p>
-      <h1 className="mx-auto mt-3 max-w-[820px] text-[clamp(2.3rem,5.6vw,3.9rem)] font-semibold leading-[1.05] tracking-[-0.04em]">
-        <BlurText as="span" text={title} delay={70} animateBy="words" direction="top" className="justify-center" />
-      </h1>
-      <motion.p
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, delay: 0.35, ease: ease.expo }}
-        className="mx-auto mt-5 max-w-[600px] text-pretty text-[17px] leading-relaxed text-fg-muted"
-      >
-        {lede}
-      </motion.p>
+      <div className="mx-auto max-w-[1120px]">
+        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: ease.expo }}>
+          <Eyebrow>{eyebrow}</Eyebrow>
+        </motion.div>
+        <h1 className="mt-5 max-w-[16ch] text-balance text-[clamp(2.5rem,6vw,4.4rem)] font-semibold leading-[1.02] tracking-[-0.045em]">
+          <BlurText as="span" text={title} delay={60} animateBy="words" direction="top" />
+        </h1>
+        <motion.p
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.3, ease: ease.expo }}
+          className="mt-6 max-w-[560px] text-pretty text-[18px] leading-[1.6] text-fg-muted"
+        >
+          {lede}
+        </motion.p>
+      </div>
     </header>
   );
 }
@@ -86,8 +82,8 @@ export function FeatureRow({
     <section id={id} className="scroll-mt-24 px-4 py-14 sm:py-20">
       <div className={cn("mx-auto grid max-w-[1120px] items-center gap-10 lg:grid-cols-2 lg:gap-16", flip && "lg:[&>*:first-child]:order-2")}>
         <Reveal>
-          <p className="text-[13px] font-medium text-accent">{eyebrow}</p>
-          <h2 className="mt-2 text-balance text-[clamp(1.8rem,3.6vw,2.6rem)] font-semibold leading-[1.1] tracking-[-0.035em]">{title}</h2>
+          <Eyebrow>{eyebrow}</Eyebrow>
+          <h2 className="mt-4 text-balance text-[clamp(1.9rem,3.6vw,2.7rem)] font-semibold leading-[1.06] tracking-[-0.04em]">{title}</h2>
           <p className="mt-4 text-pretty text-[16px] leading-relaxed text-fg-muted">{body}</p>
           {points && (
             <ul className="mt-6 flex flex-col gap-2.5">
@@ -303,37 +299,6 @@ export function ThemesVisual() {
         </div>
       </div>
       <p className="mt-3 text-center text-[12px] text-fg-subtle">Go on, try one. This whole page changes.</p>
-    </div>
-  );
-}
-
-/* Highlights (home) ------------------------------------------------------------ */
-
-const HIGHLIGHTS = [
-  { emoji: "🔒", title: "Private, on-device AI", body: "An 8B model runs on your own graphics chip. No AI provider ever sees your goals.", href: "/features#privacy" },
-  { emoji: "🗓️", title: "Plans around your real deadlines", body: "Connect Schoology, Canvas, Outlook or Google Calendar and Forma schedules around them.", href: "/features#connections" },
-  { emoji: "🎙️", title: "Talk to it, hear it back", body: "Dictate a goal and have answers read aloud in the voice you pick.", href: "/features#voice" },
-];
-
-export function Highlights() {
-  return (
-    <div className="mx-auto grid max-w-[1120px] gap-4 md:grid-cols-3">
-      {HIGHLIGHTS.map((h, i) => (
-        <Reveal key={h.title} delay={i * 0.08}>
-          <Link href={h.href} className="group block h-full rounded-2xl outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
-            <SpotlightCard className="h-full transition-transform duration-300 group-hover:-translate-y-1">
-              <span className="text-[34px] leading-none" aria-hidden>
-                {h.emoji}
-              </span>
-              <h3 className="mt-5 text-[17px] font-semibold tracking-[-0.02em]">{h.title}</h3>
-              <p className="mt-2 text-[15px] leading-relaxed text-fg-muted">{h.body}</p>
-              <span className="mt-5 inline-flex items-center gap-1 text-[13px] font-medium text-accent">
-                Learn more <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
-              </span>
-            </SpotlightCard>
-          </Link>
-        </Reveal>
-      ))}
     </div>
   );
 }

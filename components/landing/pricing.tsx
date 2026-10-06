@@ -1,11 +1,10 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Check } from "lucide-react";
+import { Check, Minus } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import CountUp from "@/components/reactbits/CountUp";
-import ShinyText from "@/components/reactbits/ShinyText";
 import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/ui/controls";
 import { ease } from "@/lib/motion";
@@ -84,8 +83,8 @@ export function Pricing() {
               viewport={{ once: true, amount: 0.3 }}
               transition={{ duration: 0.7, delay: i * 0.1, ease: ease.expo }}
               className={cn(
-                "relative flex flex-col rounded-3xl p-7",
-                featured ? "glass ring-1 ring-accent-line md:-my-3 md:py-10" : "border border-border bg-surface",
+                "relative flex flex-col rounded-[20px] border p-7 shadow-[0_1px_0_var(--glass-highlight)_inset]",
+                featured ? "border-accent-line bg-surface shadow-[0_1px_0_var(--glass-highlight)_inset,0_30px_60px_-30px_var(--accent)]" : "border-border bg-surface/70",
               )}
               aria-label={`${plan.name} plan`}
             >
@@ -98,8 +97,8 @@ export function Pricing() {
               <div className="flex items-center justify-between">
                 <h3 className="text-[17px] font-semibold tracking-[-0.02em]">{plan.name}</h3>
                 {featured && (
-                  <span className="rounded-full bg-accent-soft px-2.5 py-1 text-[12px] font-medium">
-                    <ShinyText text="Most popular" color="var(--accent)" shineColor="var(--fg)" speed={2.5} />
+                  <span className="rounded-full bg-accent-soft px-2.5 py-1">
+                    <span className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-accent">Most popular</span>
                   </span>
                 )}
               </div>
@@ -142,3 +141,86 @@ export function Pricing() {
     </div>
   );
 }
+
+/* Comparison --------------------------------------------------------------- */
+
+type Cell = boolean | string;
+const COMPARISON: { group: string; rows: [string, Cell, Cell, Cell][] }[] = [
+  {
+    group: "Planning",
+    rows: [
+      ["On-device AI planning", true, true, true],
+      ["Active plans", "3", "Unlimited", "Unlimited"],
+      ["Assistant that edits the plan", true, true, true],
+      ["Files and past plans as context", false, true, true],
+    ],
+  },
+  {
+    group: "Schedule",
+    rows: [
+      ["Self-scheduling calendar", true, true, true],
+      ["Calendar connections (Schoology, Outlook…)", true, true, true],
+      ["Calendar export and reminders", false, true, true],
+      ["Version history", false, true, true],
+    ],
+  },
+  {
+    group: "Together",
+    rows: [
+      ["Shared plans and assignees", false, false, true],
+      ["Comments on tasks", false, false, true],
+      ["Admin and billing controls", false, false, true],
+    ],
+  },
+];
+
+/** Every plan side by side, the way people actually decide. */
+export function PricingComparison() {
+  return (
+    <div className="mx-auto max-w-[1080px] overflow-x-auto">
+      <table className="w-full min-w-[640px] border-collapse text-left text-[14px]">
+        <caption className="sr-only">Compare plans</caption>
+        <thead>
+          <tr className="border-b border-border-strong">
+            <th scope="col" className="w-[40%] py-4 font-medium text-fg-subtle">
+              <span className="font-mono text-[11px] uppercase tracking-[0.12em]">Compare plans</span>
+            </th>
+            {PLANS.map((p) => (
+              <th key={p.name} scope="col" className="py-4 text-center text-[15px] font-semibold">
+                {p.name}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        {COMPARISON.map((section) => (
+          <tbody key={section.group}>
+            <tr>
+              <th colSpan={4} scope="colgroup" className="pb-2 pt-8 font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-accent">
+                {section.group}
+              </th>
+            </tr>
+            {section.rows.map(([label, ...cells]) => (
+              <tr key={label} className="border-b border-border">
+                <th scope="row" className="py-3.5 pr-4 font-normal text-fg-muted">
+                  {label}
+                </th>
+                {cells.map((c, i) => (
+                  <td key={i} className="py-3.5 text-center">
+                    {c === true ? (
+                      <Check className="mx-auto size-4 text-accent" strokeWidth={2.4} aria-label="Included" />
+                    ) : c === false ? (
+                      <Minus className="mx-auto size-4 text-fg-subtle/60" aria-label="Not included" />
+                    ) : (
+                      <span className="text-[13.5px] font-medium text-fg">{c}</span>
+                    )}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        ))}
+      </table>
+    </div>
+  );
+}
+
