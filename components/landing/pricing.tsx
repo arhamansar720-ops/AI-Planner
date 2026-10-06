@@ -121,7 +121,7 @@ export function Pricing() {
                 size="lg"
                 className="mt-7 w-full rounded-full"
               >
-                <Link href={price === 0 ? "/" : `/login?next=/&plan=${plan.name.toLowerCase()}-${billing}`}>{plan.cta}</Link>
+                <Link href={price === 0 ? "/login?mode=signup" : `/login?mode=signup&plan=${plan.name.toLowerCase()}-${billing}`}>{plan.cta}</Link>
               </Button>
 
               <ul className="mt-8 flex flex-col gap-3 border-t border-border pt-7 text-[14px]">

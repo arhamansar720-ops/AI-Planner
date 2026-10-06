@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion, useInView, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion, useInView, useReducedMotionConfig } from "framer-motion";
 import { Check, CornerDownLeft } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { PlanGraph } from "@/components/generation/plan-graph";
@@ -14,7 +14,7 @@ import { STAGES, stageIndex, type StageId } from "@/lib/planning/stages";
 import type { DraftPlan } from "@/types/plan";
 import { DEMO_LINES, DEMO_PROMPT } from "./demo-plan";
 
-type Phase = "typing" | "streaming" | "ready";
+type Phase = "typing" | "streaming" | "ready" | "fading";
 
 const EMPTY: DraftPlan = { meta: null, phases: [], tasks: [], milestones: [], risks: [], resources: [], nextActions: [] };
 
@@ -72,7 +72,7 @@ export function LiveDemo() {
   const ref = useRef<HTMLDivElement>(null);
   const feedRef = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { amount: 0.25 });
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useReducedMotionConfig();
   const [phase, setPhase] = useState<Phase>("typing");
   const [typed, setTyped] = useState(0);
   const [stage, setStage] = useState<StageId | null>(null);
@@ -113,7 +113,9 @@ export function LiveDemo() {
         t += PACE[e.type];
       }
       at(t + 500, () => setPhase("ready"));
-      at(t + 6500, run);
+      // Fade the finished plan out before starting over, so the loop never flashes.
+      at(t + 6000, () => setPhase("fading"));
+      at(t + 6700, run);
     };
     run();
     return () => timers.forEach(window.clearTimeout);
@@ -126,7 +128,7 @@ export function LiveDemo() {
     el.scrollTo({ top: el.scrollHeight, behavior: reduceMotion ? "auto" : "smooth" });
   }, [draft.tasks.length, draft.phases.length, draft.milestones.length, reduceMotion]);
 
-  const ready = phase === "ready";
+  const ready = phase === "ready" || phase === "fading";
   const stageInfo = stage ? STAGES[stageIndex(stage)] : STAGES[0];
   const indicator =
     phase === "typing"
@@ -162,7 +164,7 @@ export function LiveDemo() {
 
       <section
         style={{ borderRadius: 28 }}
-        className="glass relative w-full max-w-[1080px] overflow-hidden text-left"
+        className="glass relative w-full max-w-[1180px] overflow-hidden text-left"
         aria-hidden
       >
         <AnimatePresence>
@@ -181,15 +183,17 @@ export function LiveDemo() {
           <span className="text-xs text-fg-subtle">{LOCAL_MODEL.label} · on device</span>
         </header>
 
-        <div className="grid md:grid-cols-[252px_minmax(0,1fr)]">
-          <aside className="hidden border-r border-glass-edge px-6 py-7 md:block">
+        <div className="grid xl:grid-cols-[232px_minmax(0,1fr)]">
+          <aside className="hidden border-r border-glass-edge px-6 py-7 xl:block">
             <StageList stage={phase === "typing" ? null : stage} complete={ready} />
           </aside>
           <div
             ref={feedRef}
-            className="relative h-[420px] overflow-hidden px-4 py-6 no-scrollbar sm:px-7 sm:py-7 md:h-[660px] max-md:overflow-y-auto max-md:[mask-image:linear-gradient(to_bottom,transparent,black_24px,black_calc(100%-24px),transparent)]"
+            className="relative h-[440px] overflow-hidden px-4 py-6 no-scrollbar sm:px-7 sm:py-7 md:h-[640px] max-md:overflow-y-auto max-md:[mask-image:linear-gradient(to_bottom,transparent,black_24px,black_calc(100%-24px),transparent)]"
           >
-            <PlanGraph draft={draft} streaming={phase === "streaming"} />
+            <motion.div animate={{ opacity: phase === "fading" ? 0 : 1 }} transition={{ duration: 0.6, ease: ease.out }}>
+              <PlanGraph draft={draft} streaming={phase === "streaming"} />
+            </motion.div>
           </div>
         </div>
 

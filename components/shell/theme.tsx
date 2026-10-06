@@ -2,11 +2,9 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
-export type Theme = "light" | "dark" | "system";
-const STORAGE_KEY = "forma-theme";
+import { THEME_KEY as STORAGE_KEY, type Theme } from "@/lib/appearance";
 
-/** Runs before paint to avoid a flash of the wrong theme. */
-export const themeScript = `(function(){try{var t=localStorage.getItem("${STORAGE_KEY}")||"system";var d=t==="dark"||(t==="system"&&matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.toggle("dark",d);}catch(e){}})();`;
+export type { Theme };
 
 type ThemeContextValue = { theme: Theme; setTheme: (theme: Theme) => void };
 const ThemeContext = createContext<ThemeContextValue>({ theme: "system", setTheme: () => {} });

@@ -18,7 +18,7 @@ export function useAccentRGB(): [number, number, number] | null {
     read();
     // The theme is a class on <html>; follow it.
     const observer = new MutationObserver(read);
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class", "data-palette"] });
     return () => observer.disconnect();
   }, []);
 

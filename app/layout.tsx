@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { GeistMono } from "geist/font/mono";
 import { GeistSans } from "geist/font/sans";
 import { Providers } from "@/components/shell/providers";
-import { themeScript } from "@/components/shell/theme";
+import { appearanceScript, themeScript } from "@/lib/appearance";
 import { product } from "@/lib/config";
 import "./globals.css";
 
@@ -26,7 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${GeistSans.variable} ${GeistMono.variable} h-full antialiased`}
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <script dangerouslySetInnerHTML={{ __html: themeScript + appearanceScript }} />
       </head>
       <body className="min-h-full bg-bg font-sans text-fg">
         <a

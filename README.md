@@ -6,7 +6,7 @@ Give Forma an objective, idea or problem and watch it become a complete, schedul
 Idea → Prompt → AI understands → AI structures → AI organizes → Finished plan
 ```
 
-The home page is the product: a single prompt. When you submit, the prompt travels to the top of the screen, a frosted planning canvas appears, and the plan assembles live as an AI model running **in your browser** writes it: goal, phases, tasks, dependencies, timeline and milestones. When it's done, the canvas expands into a workspace with an overview, timeline, task list, calendar, milestones, resources, notes, and an assistant that can change the plan.
+The app's home (`/app`) is a single prompt. When you submit, the prompt travels to the top of the screen, a frosted planning canvas appears, and the plan assembles live as an AI model running **in your browser** writes it: goal, phases, tasks, dependencies, timeline and milestones. When it's done, the canvas expands into a workspace with an overview, timeline, task list, calendar, milestones, resources, notes, and an assistant that can change the plan.
 
 ## Stack
 
@@ -25,9 +25,13 @@ Next.js 16 (App Router, Turbopack) · TypeScript · Tailwind CSS 4 · Radix prim
 
 3. **Apply the schema.** Either run `supabase db push` with the Supabase CLI, or paste `supabase/migrations/20261005000000_init.sql` into the SQL editor. It creates the tables, row-level security policies, the new-user trigger and the `save_plan` function.
 
-4. **Configure auth redirects.** In *Authentication → URL Configuration*, set the Site URL to your app's URL and add `<your-url>/auth/callback` as a redirect URL (used by email confirmation).
+4. **Configure auth redirects.** In *Authentication → URL Configuration*, set the Site URL to your app's URL and add `<your-url>/auth/callback` as a redirect URL (used by email confirmation, password resets and social sign-in).
 
-5. **Run it**
+5. **Optional: Google and Microsoft sign-in.** The login page reads which providers are switched on in Supabase and only uses those.
+   - **Google:** create an OAuth client (Web application) in Google Cloud Console → APIs & Services → Credentials, with `https://<your-project>.supabase.co/auth/v1/callback` as the authorized redirect URI. Paste its client ID and secret into Supabase → *Authentication → Providers → Google* and enable it.
+   - **Microsoft:** register an app in the Azure portal (Microsoft Entra ID → App registrations), add the same Supabase callback URL as a Web redirect URI, create a client secret, and enter them in Supabase → *Authentication → Providers → Azure*.
+
+6. **Run it**
 
    ```bash
    npm run dev
@@ -99,11 +103,12 @@ Supabase Postgres with RLS on every table (`user_id = auth.uid()`). Tables: `pro
 ## Project structure
 
 ```
-app/                  routes: /, /landing, /plan/[id], /history, /settings, /login, api/*
+app/                  (marketing)/ site pages; app, plan/[id], chats, history, personalize, settings, setup, login; api/*
 components/
   home/               heading, prompt composer, context and model menus, chips
   setup/              first-run setup flow
   voice/              dictation and read-aloud buttons, voice picker
+  personalize/ chats/ personalize page and chat history
   landing/            marketing page sections and the replayed demo
   reactbits/          vendored React Bits animation components
   generation/         planning canvas, plan graph, stage list, status, SSE hook
@@ -112,6 +117,7 @@ components/
   ui/                 design-system primitives
 lib/
   ai/                 assembler, prompts, schemas, operations; local/ = on-device engine, planner, assistant
+  connections/        calendar feed providers, safe fetcher, iCal reader/writer
   planning/           dates, scheduling engine, mutations, selectors, stages
   db/                 Supabase clients and repositories
   validation/         Zod schemas for the domain and API
@@ -126,9 +132,36 @@ Tokens are in `app/globals.css`: near-black text on an off-white base, one restr
 
 To rename the product, edit `product` in `lib/config.ts`.
 
-## Landing page
+## Site and app
 
-`/landing` is the marketing page (`components/landing/`). Its live demo is the real planning canvas replaying a streamed plan (`components/landing/demo-plan.ts`) through the real `PlanAssembler`. The final call to action hands the typed goal to the app as a draft. Animations in `components/reactbits/` come from [React Bits](https://github.com/DavidHDev/react-bits) (MIT + Commons Clause, see the license file there). The pricing tiers are placeholders: no payment provider is connected.
+- **Marketing site** (`app/(marketing)/`): `/` (home), `/features`, `/how-it-works` and `/pricing`, sharing one nav and footer (`components/landing/`). The live demo is the real planning canvas replaying a streamed plan (`components/landing/demo-plan.ts`) through the real `PlanAssembler`. Signed-in visitors see **Open app** and their account menu instead of **Sign in**. Animations in `components/reactbits/` come from [React Bits](https://github.com/DavidHDev/react-bits) (MIT + Commons Clause, see the license file there). The pricing tiers are placeholders: no payment provider is connected.
+- **The app** lives at `/app` (the prompt and planning canvas), with `/plan/[id]`, `/chats`, `/history`, `/personalize`, `/settings` and `/setup`.
+- **Sign-in** (`/login`): email and password, password reset (`/reset-password`), and Google or Microsoft when enabled in Supabase.
+
+### Account menu and Personalize
+
+The avatar menu holds Personalize, Chats, Plans, Settings, light/dark/system and a color-theme row. `/personalize` covers:
+
+- **Mode** (see Setup and modes below).
+- **Appearance:** light, dark or system, plus color themes (Cobalt, Pastel pink, Baby blue, Mint, Lavender, Peach, Graphite). Each palette is a set of CSS variables in `app/globals.css`, checked for WCAG AA contrast in light and dark.
+- **Voice:** the voice picker.
+- **Accessibility:** larger text (the interface scales), higher contrast, reduced motion (also switches Framer Motion to fades), readable spacing and underlined links.
+- **Connections** (below).
+
+Appearance and accessibility choices are stored on the device (`lib/appearance.ts`, applied before first paint by a script in the root layout).
+
+### Connections
+
+Read-only, with no third-party API keys:
+
+- **Calendar feeds:** Schoology, Canvas, Outlook, Google Calendar and Apple Calendar can all publish a private iCal link. Forma stores the link in the account's user metadata and reads upcoming items from it on the server (`lib/connections/`). The fetcher accepts only HTTPS, checks every resolved address inside the connection's own DNS lookup so it can't be pointed at private networks, follows at most three redirects and caps size and time.
+- **Skyward** has no public feed, so its assignments page is pasted and kept on the device.
+- **Using them:** in the prompt box, *Add context → Connected tools* attaches upcoming deadlines to a new plan.
+- **The other direction:** every plan has *Add to calendar* (`/api/plans/[id]/calendar`), an .ics file for Outlook, Google or Apple Calendar.
+
+### Chats
+
+`/chats` lists every plan that has an assistant conversation, with search and the full transcript. *Continue this chat* opens the plan with the assistant focused.
 
 ## Claude test bench
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotionConfig } from "framer-motion";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
@@ -48,7 +48,7 @@ const nearestTime = (m: number) =>
 export function SetupFlow({ name, returning, initial }: { name: string; returning: boolean; initial: Choices }) {
   const router = useRouter();
   const toast = useToast();
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionConfig();
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState(1);
   const [choices, setChoices] = useState<Choices>({ ...initial, dailyMinutes: nearestTime(initial.dailyMinutes) });
@@ -98,7 +98,7 @@ export function SetupFlow({ name, returning, initial }: { name: string; returnin
       toast({ message: "Couldn’t save your setup. Please try again.", tone: "error" });
       return;
     }
-    router.push("/");
+    router.push("/app");
     router.refresh();
   };
 
@@ -109,7 +109,7 @@ export function SetupFlow({ name, returning, initial }: { name: string; returnin
       return;
     }
     if (await persist(choices)) {
-      router.push("/");
+      router.push("/app");
       router.refresh();
     } else toast({ message: "Couldn’t save your setup. Please try again.", tone: "error" });
   };
@@ -386,7 +386,7 @@ function Done({
   save: "idle" | "saving" | "saved" | "error";
   onStart: () => void;
 }) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionConfig();
   const persona = getPersona(choices.persona);
   const voice = useVoiceSettings();
   const voices = useVoices();

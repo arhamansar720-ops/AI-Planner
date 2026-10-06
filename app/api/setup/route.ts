@@ -27,3 +27,19 @@ export async function POST(request: Request) {
     return jsonError(500, "Could not save your setup");
   }
 }
+
+const PersonaSchema = z.object({ persona: z.enum(PERSONA_IDS).nullable() });
+
+/** Change just the mode (from Personalize). */
+export async function PATCH(request: Request) {
+  const auth = await requireUser();
+  if ("error" in auth) return auth.error;
+  const body = await readJson(request, PersonaSchema);
+  if ("error" in body) return body.error;
+  const { error } = await auth.supabase.auth.updateUser({ data: { persona: body.data.persona } });
+  if (error) {
+    console.error("[setup] persona update failed", { error });
+    return jsonError(500, "Could not save your mode");
+  }
+  return NextResponse.json({ ok: true });
+}

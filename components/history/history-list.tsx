@@ -69,7 +69,7 @@ export function HistoryList({ plans: initial }: { plans: PlanSummary[] }) {
         <p className="text-[17px] font-medium tracking-[-0.01em]">No plans yet.</p>
         <p className="mt-1 text-sm text-fg-muted">Start with something you’re trying to accomplish.</p>
         <Button asChild variant="primary" className="mt-6">
-          <Link href="/">
+          <Link href="/app">
             Create your first plan <ArrowRight />
           </Link>
         </Button>

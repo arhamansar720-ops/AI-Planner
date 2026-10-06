@@ -55,6 +55,9 @@ const BlurText: React.FC<BlurTextProps> = ({
 }) => {
   const elements = animateBy === 'words' ? text.split(' ') : text.split('');
   const [inView, setInView] = useState(false);
+  // Forma: once every word has landed, render plain spans so no filter or
+  // will-change layer is left behind (those keep text slightly soft).
+  const [done, setDone] = useState(false);
   const ref = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -97,6 +100,19 @@ const BlurText: React.FC<BlurTextProps> = ({
   const totalDuration = stepDuration * (stepCount - 1);
   const times = Array.from({ length: stepCount }, (_, i) => (stepCount === 1 ? 0 : i / (stepCount - 1)));
 
+  if (done) {
+    return (
+      <Tag ref={ref as React.RefObject<never>} className={`blur-text ${className} flex flex-wrap`}>
+        {elements.map((segment, index) => (
+          <span key={index} style={{ display: 'inline-block' }}>
+            {segment === ' ' ? '\u00A0' : segment}
+            {animateBy === 'words' && index < elements.length - 1 && '\u00A0'}
+          </span>
+        ))}
+      </Tag>
+    );
+  }
+
   return (
     <Tag ref={ref as React.RefObject<never>} className={`blur-text ${className} flex flex-wrap`}>
       {elements.map((segment, index) => {
@@ -115,7 +131,14 @@ const BlurText: React.FC<BlurTextProps> = ({
             initial={fromSnapshot}
             animate={inView ? animateKeyframes : fromSnapshot}
             transition={spanTransition}
-            onAnimationComplete={index === elements.length - 1 ? onAnimationComplete : undefined}
+            onAnimationComplete={
+              index === elements.length - 1 && inView
+                ? () => {
+                    setDone(true);
+                    onAnimationComplete?.();
+                  }
+                : undefined
+            }
             style={{
               display: 'inline-block',
               willChange: 'transform, filter, opacity'

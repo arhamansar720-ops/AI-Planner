@@ -1,25 +1,31 @@
 import type { Metadata } from "next";
 import { LoginForm } from "@/components/shell/login-form";
 import { Wordmark } from "@/components/ui/brand";
+import { getAuthProviders } from "@/lib/db/auth-providers";
 import { isSupabaseConfigured } from "@/lib/db/env";
 import { safeNext } from "@/lib/utils/safe-next";
 
 export const metadata: Metadata = { title: "Sign in" };
 
-type Props = { searchParams: Promise<{ next?: string; error?: string }> };
+type Props = { searchParams: Promise<{ next?: string; error?: string; mode?: string }> };
 
 export default async function LoginPage({ searchParams }: Props) {
-  const { next, error } = await searchParams;
+  const { next, error, mode } = await searchParams;
 
   return (
-    <main id="main" className="relative flex min-h-dvh items-center justify-center px-6 py-16">
+    <main id="main" className="relative flex min-h-dvh">
       <div className="app-grain pointer-events-none fixed inset-0 -z-10" aria-hidden>
         <div className="app-backdrop app-backdrop-mask absolute inset-0" />
       </div>
       {isSupabaseConfigured() ? (
-        <LoginForm next={safeNext(next)} linkError={error === "link"} />
+        <LoginForm
+          next={safeNext(next)}
+          linkError={error === "link"}
+          initialMode={mode === "signup" ? "signup" : "signin"}
+          providers={await getAuthProviders()}
+        />
       ) : (
-        <div className="w-full max-w-[420px]">
+        <div className="m-auto w-full max-w-[420px] px-6">
           <Wordmark />
           <h1 className="mt-10 text-[22px] font-semibold tracking-[-0.025em]">Authentication isn’t configured</h1>
           <p className="mt-2 text-sm leading-relaxed text-fg-muted">

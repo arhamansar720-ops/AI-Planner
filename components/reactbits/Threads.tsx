@@ -2,7 +2,8 @@
 /*
  * Threads, from React Bits (https://github.com/DavidHDev/react-bits).
  * Copyright (c) 2026 David Haz. MIT + Commons Clause License; see components/reactbits/LICENSE.md.
- * Adapted for Forma: imports framer-motion and uses the app design tokens.
+ * Adapted for Forma: imports framer-motion and uses the app design tokens; fewer lines and a
+ * capped render resolution so it stays smooth on laptop GPUs.
  */
 
 import React, { useEffect, useRef } from 'react';
@@ -37,7 +38,7 @@ uniform vec2 uMouse;
 
 #define PI 3.1415926538
 
-const int u_line_count = 40;
+const int u_line_count = 16;
 const float u_line_width = 7.0;
 const float u_line_blur = 10.0;
 
@@ -180,10 +181,10 @@ const Threads: React.FC<ThreadsProps> = ({
     // its cost scales with the number of rendered pixels. Cap the internal render
     // resolution to keep large / high-DPI screens smooth; the effect is soft
     // enough that the downscale is imperceptible.
-    const MAX_RENDER_DIM = 1920;
+    const MAX_RENDER_DIM = 1100;
     function resize() {
       const { clientWidth, clientHeight } = container;
-      const baseDpr = Math.min(window.devicePixelRatio || 1, 2);
+      const baseDpr = Math.min(window.devicePixelRatio || 1, 1.25);
       const longestSide = Math.max(clientWidth, clientHeight) * baseDpr;
       const dpr = longestSide > MAX_RENDER_DIM ? (baseDpr * MAX_RENDER_DIM) / longestSide : baseDpr;
       renderer.dpr = dpr;

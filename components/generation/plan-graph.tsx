@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotionConfig } from "framer-motion";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { TimelineStrip } from "@/components/timeline/timeline-strip";
 import { ease, spring } from "@/lib/motion";
@@ -31,7 +31,7 @@ export const PRIORITY_DOT: Record<Task["priority"], string> = {
 
 export function PlanGraph({ draft, streaming }: { draft: DraftPlan; streaming: boolean }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionConfig();
   const phases = draft.phases.slice(0, MAX_COLUMNS);
   const hiddenPhases = draft.phases.length - phases.length;
   const columns = Math.max(1, phases.length);

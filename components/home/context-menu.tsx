@@ -1,18 +1,22 @@
 "use client";
 
-import { ArrowLeft, FileText, Layers, Link2, NotebookPen, Plus } from "lucide-react";
+import { ArrowLeft, CalendarRange, FileText, Layers, Link2, NotebookPen, Plus } from "lucide-react";
+import Link from "next/link";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/field";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/overlays";
 import { useToast } from "@/components/ui/toast";
+import { getProvider } from "@/lib/connections/providers";
+import { readSkywardSnapshot } from "@/lib/connections/skyward";
 import type { ContextItemInput } from "@/lib/validation/api";
 import type { Plan, PlanSummary } from "@/types/plan";
 
 const MAX_FILE_BYTES = 200_000;
 const TEXT_TYPES = /\.(txt|md|markdown|csv|json|ics)$/i;
 
-type Mode = "menu" | "note" | "link" | "plan";
+type Mode = "menu" | "note" | "link" | "plan" | "connections";
+type Connection = { id: string; provider: string; host: string };
 
 export function AddContextButton({
   onAdd,
@@ -27,6 +31,8 @@ export function AddContextButton({
   const [mode, setMode] = useState<Mode>("menu");
   const [text, setText] = useState("");
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [connections, setConnections] = useState<Connection[] | null>(null);
+  const [signedOut, setSignedOut] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
 
@@ -67,6 +73,33 @@ export function AddContextButton({
     }
   };
 
+  const openConnections = async () => {
+    setMode("connections");
+    if (connections) return;
+    const res = await fetch("/api/connections").catch(() => null);
+    if (res?.status === 401) setSignedOut(true);
+    const data = res?.ok ? ((await res.json()) as { connections: Connection[] }) : { connections: [] };
+    setConnections(data.connections);
+  };
+
+  const attachConnection = async (c: Connection) => {
+    setLoadingPlan(c.id);
+    try {
+      const res = await fetch(`/api/connections/${c.id}`);
+      const data = (await res.json()) as { events?: unknown[]; summary?: string; error?: string };
+      if (!res.ok || !data.summary) throw new Error(data.error);
+      const name = getProvider(c.provider)?.name ?? "Calendar";
+      onAdd({ kind: "file", label: `${name} · ${data.events?.length ?? 0} upcoming`, content: data.summary });
+      close();
+    } catch (error) {
+      toast({ message: (error as Error).message || "Couldn’t read that calendar.", tone: "error" });
+    } finally {
+      setLoadingPlan(null);
+    }
+  };
+
+  const skyward = mode === "connections" ? readSkywardSnapshot() : null;
+
   return (
     <Popover open={open} onOpenChange={(o) => (o ? setOpen(true) : close())}>
       <PopoverTrigger asChild>
@@ -81,6 +114,12 @@ export function AddContextButton({
             <MenuButton icon={<NotebookPen />} label="Note" hint="Constraints, details, preferences" onClick={() => setMode("note")} />
             <MenuButton icon={<Link2 />} label="Link" hint="A page you want considered" onClick={() => setMode("link")} />
             <MenuButton icon={<FileText />} label="File" hint="Text, Markdown, CSV or JSON" onClick={() => fileRef.current?.click()} />
+            <MenuButton
+              icon={<CalendarRange />}
+              label="Connected tools"
+              hint="Deadlines from Schoology, Outlook and more"
+              onClick={openConnections}
+            />
             <MenuButton
               icon={<Layers />}
               label="Existing plan"
@@ -153,6 +192,60 @@ export function AddContextButton({
                 </button>
               ))}
             </div>
+          </div>
+        )}
+        {mode === "connections" && (
+          <div className="flex flex-col p-0.5">
+            <button type="button" onClick={() => setMode("menu")} className="mb-1 flex items-center gap-1 px-2 pt-1 text-xs text-fg-subtle hover:text-fg">
+              <ArrowLeft className="size-3" /> Back
+            </button>
+            {connections === null ? (
+              <p className="px-2.5 py-3 text-[13px] text-fg-subtle">Loading…</p>
+            ) : (
+              <div className="max-h-64 overflow-y-auto scrollbar-thin">
+                {connections.map((c) => {
+                  const p = getProvider(c.provider);
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      disabled={loadingPlan !== null}
+                      onClick={() => attachConnection(c)}
+                      className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] hover:bg-surface-2 disabled:opacity-50"
+                    >
+                      <span className="flex size-6 shrink-0 items-center justify-center rounded-md text-[11px] font-bold text-white" style={{ background: p?.color }}>
+                        {p?.name[0]}
+                      </span>
+                      <span className="flex-1 truncate">{p?.name ?? c.provider}</span>
+                      {loadingPlan === c.id && <span className="text-xs text-fg-subtle">Reading…</span>}
+                    </button>
+                  );
+                })}
+                {skyward && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onAdd({ kind: "file", label: "Skyward assignments", content: `Pasted from Skyward Family Access (assignments, due dates and grades):\n${skyward.text}` });
+                      close();
+                    }}
+                    className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] hover:bg-surface-2"
+                  >
+                    <span className="flex size-6 shrink-0 items-center justify-center rounded-md text-[11px] font-bold text-white" style={{ background: getProvider("skyward")?.color }}>
+                      S
+                    </span>
+                    <span className="flex-1 truncate">Skyward</span>
+                  </button>
+                )}
+                {connections.length === 0 && !skyward && (
+                  <p className="px-2.5 py-2 text-[13px] leading-relaxed text-fg-muted">
+                    {signedOut ? "Sign in to connect your tools." : "Nothing connected yet."}{" "}
+                    <Link href={signedOut ? "/login" : "/personalize#connections"} className="font-medium text-fg underline underline-offset-2">
+                      {signedOut ? "Sign in" : "Connect a tool"}
+                    </Link>
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         )}
         <input

@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion, useMotionValue, useReducedMotion, useSpring, useTransform, type Variants } from "framer-motion";
+import { AnimatePresence, motion, useMotionValue, useReducedMotionConfig, useSpring, useTransform, type Variants } from "framer-motion";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
@@ -43,7 +43,7 @@ export function PressTile({
   /** "accent" is a solid primary key for the main action. */
   tone?: "default" | "accent";
 }) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionConfig();
   const depth = DEPTH[size];
   const px = useMotionValue(0);
   const py = useMotionValue(0);
@@ -117,7 +117,7 @@ export function PressTile({
       <motion.span
         variants={face}
         transition={press}
-        style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
+        style={{ rotateX, rotateY }}
         className={cn(
           "relative flex border shadow-[inset_0_1px_0_var(--glass-highlight)] transition-[background-color,border-color] duration-200",
           "group-focus-visible:outline-2 group-focus-visible:outline-offset-2 group-focus-visible:outline-ring",

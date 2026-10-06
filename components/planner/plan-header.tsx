@@ -1,7 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Quote } from "lucide-react";
+import { CalendarPlus, Quote } from "lucide-react";
+import { Tooltip } from "@/components/ui/overlays";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { spring } from "@/lib/motion";
 import { formatRange } from "@/lib/planning/dates";
@@ -48,6 +49,15 @@ export function PlanHeader({ handoff }: { handoff: boolean }) {
           {meta.statusLabel}
         </span>
         <span className="text-fg-subtle">· {formatRange(plan.startDate, plan.endDate)}</span>
+        <Tooltip content="Download for Outlook, Google or Apple Calendar">
+          <a
+            href={`/api/plans/${plan.id}/calendar`}
+            download
+            className="ml-1 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-fg-muted transition-colors hover:bg-surface-2 hover:text-fg"
+          >
+            <CalendarPlus className="size-3.5" aria-hidden /> Add to calendar
+          </a>
+        </Tooltip>
       </div>
       <div className="mt-2 flex items-center gap-3">
         <div

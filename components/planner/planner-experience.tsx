@@ -57,7 +57,7 @@ export function PlannerExperience({
 
   const goToLogin = useCallback(() => {
     saveDraft();
-    router.push("/login?next=/");
+    router.push("/login?next=/app");
   }, [router, saveDraft]);
 
   const generation = usePlanGeneration({ onUnauthorized: goToLogin });
@@ -115,7 +115,7 @@ export function PlannerExperience({
   // Browser back from /plan/[id] (pushed after generation) returns home.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- follow history navigation
-    if (pathname === "/" && stage === "workspace") reset({ keepPrompt: false });
+    if (pathname === "/app" && stage === "workspace") reset({ keepPrompt: false });
   }, [pathname, stage, reset]);
 
   // The completion moment, then hand off to the workspace.

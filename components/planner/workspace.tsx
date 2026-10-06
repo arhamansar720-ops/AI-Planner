@@ -80,6 +80,14 @@ function WorkspaceLayout({ handoff: initialHandoff }: { handoff: boolean }) {
     return () => mq.removeEventListener("change", update);
   }, []);
 
+  // "Continue this chat" from /chats opens the assistant (a sheet on narrower screens).
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("assistant") !== "open") return;
+    setAssistantOpen(true);
+    window.history.replaceState(null, "", window.location.pathname);
+    requestAnimationFrame(() => document.getElementById("assistant-input")?.focus());
+  }, [setAssistantOpen]);
+
   const enterFrom = (x: number) =>
     initialHandoff
       ? { initial: { opacity: 0, x }, animate: { opacity: 1, x: 0 }, transition: { ...spring.soft, delay: 0.25 } }
