@@ -53,6 +53,19 @@ There is no AI provider and no API key. Plans and assistant answers come from **
 - The context window is raised to 8,192 tokens so a prompt and a complete plan fit; the planning prompt asks for compact plans (3–5 phases of 3–5 tasks).
 - To use a different model, set `NEXT_PUBLIC_LOCAL_MODEL` to any WebLLM prebuilt model id (for example `Qwen3-4B-q4f16_1-MLC` for weaker machines).
 
+### Setup and modes
+
+New accounts go through `/setup` (`components/setup/setup-flow.tsx`) before their first plan: a mode (Student 📚, Professional 💼, Founder 🚀, Creator 🎨, Athlete 🏃, Life & home 🏡), daily time, pace, days off and a voice. Choices are made with `PressTile` (`components/ui/press-tile.tsx`), a physical key that lifts and tilts on hover and sinks into its base when pressed.
+
+Modes are defined in `lib/personas.ts`. A mode adds guidance to the planning prompt, changes the home screen's starting suggestions and proposes default time and pace. It is stored in the account's Supabase user metadata, so no table change is needed; time, pace and days off go to `user_preferences`. Settings shows the mode and can reopen setup.
+
+### Voice
+
+Free, with no account or download: it uses the browser's Web Speech API.
+
+- **Read aloud** (`lib/voice/speech.ts`): the voices built into the device, ranked so natural-sounding ones come first (`lib/voice/text.ts`). People choose a voice (each press plays a preview), a speed, and whether assistant replies and finished plans are read automatically. Every assistant reply has a Listen button. Voice choices are saved per device, since each device has its own voices.
+- **Dictation** (`lib/voice/dictation.ts`): a mic in the prompt box and the assistant. It asks the browser to recognize speech on the device where supported; otherwise the browser uses its own speech service (in Chrome, Google's). Hidden in browsers without speech recognition (such as Firefox).
+
 ### Generation: real streaming, not a loading animation
 
 1. `lib/ai/local/planner.ts` asks the model for **NDJSON**: one JSON object per line (`meta`, then each `phase` followed by its `task`s, then `milestone`, `risk`, `resource` and `next`).
@@ -89,6 +102,8 @@ Supabase Postgres with RLS on every table (`user_id = auth.uid()`). Tables: `pro
 app/                  routes: /, /landing, /plan/[id], /history, /settings, /login, api/*
 components/
   home/               heading, prompt composer, context and model menus, chips
+  setup/              first-run setup flow
+  voice/              dictation and read-aloud buttons, voice picker
   landing/            marketing page sections and the replayed demo
   reactbits/          vendored React Bits animation components
   generation/         planning canvas, plan graph, stage list, status, SSE hook

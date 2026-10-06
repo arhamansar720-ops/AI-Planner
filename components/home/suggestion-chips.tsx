@@ -2,9 +2,15 @@
 
 import { motion } from "framer-motion";
 import { ease } from "@/lib/motion";
-import { SUGGESTIONS } from "./phrases";
 
-export function SuggestionChips({ onPick }: { onPick: (starter: string) => void }) {
+
+export function SuggestionChips({
+  suggestions,
+  onPick,
+}: {
+  suggestions: readonly { label: string; starter: string }[];
+  onPick: (starter: string) => void;
+}) {
   return (
     <motion.ul
       initial="hidden"
@@ -14,7 +20,7 @@ export function SuggestionChips({ onPick }: { onPick: (starter: string) => void 
       className="flex max-w-[720px] flex-wrap justify-center gap-2"
       aria-label="Starting points"
     >
-      {SUGGESTIONS.map((s) => (
+      {suggestions.map((s) => (
         <motion.li
           key={s.label}
           variants={{

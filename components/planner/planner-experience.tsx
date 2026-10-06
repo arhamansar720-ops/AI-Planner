@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { PlanningCanvas } from "@/components/generation/planning-canvas";
 import { PromptHeader } from "@/components/generation/prompt-header";
 import { usePlanGeneration } from "@/components/generation/use-plan-generation";
-import { pickHeading, SUGGESTIONS } from "@/components/home/phrases";
+import { pickHeading, suggestionsFor } from "@/components/home/phrases";
 import { PromptComposer, type ComposerHandle } from "@/components/home/prompt-composer";
 import { PromptHeading } from "@/components/home/prompt-heading";
 import { SuggestionChips } from "@/components/home/suggestion-chips";
@@ -16,6 +16,7 @@ import { getEngineState } from "@/lib/ai/local/engine";
 import { LOCAL_MODEL } from "@/lib/config";
 import { ease } from "@/lib/motion";
 import { localToday } from "@/lib/planning/dates";
+import { speakIfAutoRead } from "@/lib/voice/speech";
 import type { ContextItemInput } from "@/lib/validation/api";
 import type { PlanSummary } from "@/types/plan";
 import { Workspace } from "./workspace";
@@ -119,17 +120,26 @@ export function PlannerExperience({
 
   // The completion moment, then hand off to the workspace.
   const planId = state.plan?.id;
+  const readyPlan = state.status === "ready" ? state.plan : null;
   useEffect(() => {
-    if (state.status !== "ready" || !planId) return;
+    if (!readyPlan || !planId) return;
     try {
       sessionStorage.removeItem(DRAFT_KEY);
     } catch {}
+    {
+      const { title, phases, tasks, nextActions } = readyPlan;
+      speakIfAutoRead(
+        `Your plan, ${title}, is ready. ${phases.length} phases and ${tasks.length} tasks.` +
+          (nextActions[0] ? ` First up: ${nextActions[0]}` : ""),
+        "plan-ready",
+      );
+    }
     const t = window.setTimeout(() => {
       setStage("workspace");
       window.history.pushState(null, "", `/plan/${planId}`);
     }, 1500);
     return () => window.clearTimeout(t);
-  }, [state.status, planId]);
+  }, [readyPlan, planId]);
 
   const submit = () => {
     const text = prompt.trim();
@@ -149,10 +159,11 @@ export function PlannerExperience({
     void generation.start({ prompt: text, context, preferences, today: localToday() });
   };
 
+  const suggestions = suggestionsFor(preferences.persona);
   const applySuggestion = (starter: string) => {
     setPrompt((current) => {
       const trimmed = current.trim();
-      const existing = SUGGESTIONS.find((s) => trimmed.startsWith(s.starter.trim()));
+      const existing = suggestions.find((s) => trimmed.startsWith(s.starter.trim()));
       if (!trimmed) return starter;
       if (existing) return starter + trimmed.slice(existing.starter.trim().length).trimStart();
       return starter + trimmed[0].toLowerCase() + trimmed.slice(1);
@@ -220,7 +231,7 @@ export function PlannerExperience({
                   {notice}
                 </p>
               )}
-              <SuggestionChips onPick={applySuggestion} />
+              <SuggestionChips suggestions={suggestions} onPick={applySuggestion} />
             </motion.main>
           )}
 

@@ -5,6 +5,7 @@ import { ArrowUp, FileText, Layers, Link2, NotebookPen, X } from "lucide-react";
 import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef } from "react";
 import { Kbd } from "@/components/ui/field";
 import { Tooltip } from "@/components/ui/overlays";
+import { DictationButton } from "@/components/voice/dictation-button";
 import { spring } from "@/lib/motion";
 import { cn } from "@/lib/utils/cn";
 import type { ContextItemInput } from "@/lib/validation/api";
@@ -142,6 +143,7 @@ export const PromptComposer = forwardRef<ComposerHandle, Props>(function PromptC
             <Kbd>↵</Kbd>
           </span>
           <LocalModelChip />
+          <DictationButton value={value} onChange={onChange} />
           <Tooltip content="Build plan" shortcut="⌘↵" side="top">
             <motion.button
               ref={buttonScope}

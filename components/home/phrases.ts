@@ -1,3 +1,5 @@
+import { getPersona } from "@/lib/personas";
+
 export const HEADINGS = [
   "What are we planning today?",
   "What are you building?",
@@ -29,3 +31,8 @@ export const SUGGESTIONS = [
   { label: "Life", starter: "Help me get organized around " },
   { label: "Business", starter: "Help me plan the launch of " },
 ] as const;
+
+/** Starting points for the home screen, tailored to the person's mode. */
+export function suggestionsFor(persona: string | null | undefined): readonly { label: string; starter: string }[] {
+  return getPersona(persona)?.suggestions ?? SUGGESTIONS;
+}

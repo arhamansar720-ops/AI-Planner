@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { isSupabaseConfigured, supabaseEnv } from "@/lib/db/env";
 import { safeNext } from "@/lib/utils/safe-next";
 
-const PROTECTED = ["/plan", "/history", "/settings"];
+const PROTECTED = ["/plan", "/history", "/settings", "/setup"];
 
 /**
  * Refreshes the Supabase session on every navigation and keeps signed-out

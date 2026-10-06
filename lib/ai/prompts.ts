@@ -1,6 +1,7 @@
 import type { PlanningStyle, ResponseStyle } from "@/lib/config";
 import { product } from "@/lib/config";
 import { addDays, formatLong, weekdayNames, weekday } from "@/lib/planning/dates";
+import { getPersona, type PersonaId } from "@/lib/personas";
 import type { Plan } from "@/types/plan";
 
 export type PlannerPreferences = {
@@ -9,6 +10,8 @@ export type PlannerPreferences = {
   dailyMinutes: number;
   blockedWeekdays: number[];
   responseStyle: ResponseStyle;
+  /** Who the person is planning as, from setup. */
+  persona?: PersonaId | null;
 };
 
 export type ContextItem = {
@@ -99,6 +102,8 @@ export function buildPlannerUserMessage(input: {
   const { prompt, today, preferences, context, clarification } = input;
   const lines: string[] = [];
   lines.push(`Plan start (day 0): ${weekdayNames.long[weekday(today)]}, ${formatLong(today)} (${today}).`);
+  const persona = getPersona(preferences.persona);
+  if (persona) lines.push(`About the person: ${persona.guidance}`);
   lines.push(`Planning style: ${STYLE_GUIDANCE[preferences.planningStyle]}`);
   lines.push(
     `Default availability unless the goal says otherwise: about ${preferences.dailyMinutes} minutes per working day.`,

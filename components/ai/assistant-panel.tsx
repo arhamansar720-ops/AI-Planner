@@ -5,6 +5,8 @@ import { ArrowUp, Check } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { usePlanStore } from "@/components/planner/plan-store";
 import { ThinkingDots } from "@/components/ui/spinner";
+import { DictationButton } from "@/components/voice/dictation-button";
+import { SpeakButton } from "@/components/voice/speak-button";
 import { useToast } from "@/components/ui/toast";
 import { ease, spring } from "@/lib/motion";
 import { localToday } from "@/lib/planning/dates";
@@ -13,6 +15,7 @@ import { Markdown } from "./markdown";
 import { runLocalAssistant } from "@/lib/ai/local/assistant";
 import { useEngineState } from "@/lib/ai/local/engine";
 import type { ResponseStyle } from "@/lib/config";
+import { speakIfAutoRead, stopSpeaking } from "@/lib/voice/speech";
 
 type Message = { id: string; role: "user" | "assistant"; content: string; changes: string[] };
 
@@ -79,6 +82,7 @@ export function AssistantPanel({ className, responseStyle = "concise" }: { class
       if (!message || pending) return;
       setPending(message);
       setInput("");
+      stopSpeaking();
       try {
         const result = await runLocalAssistant({
           plan,
@@ -96,6 +100,7 @@ export function AssistantPanel({ className, responseStyle = "concise" }: { class
         if (res.ok) {
           const data = (await res.json()) as { userMessage: Message; reply: Message };
           setMessages((m) => [...m, data.userMessage, data.reply]);
+          speakIfAutoRead(data.reply.content, data.reply.id);
         } else {
           // Keep the answer on screen even if it couldn't be stored.
           const now = Date.now();
@@ -104,6 +109,7 @@ export function AssistantPanel({ className, responseStyle = "concise" }: { class
             { id: `u${now}`, role: "user", content: message, changes: [] },
             { id: `a${now}`, role: "assistant", content: result.reply, changes: result.changes },
           ]);
+          speakIfAutoRead(result.reply, `a${now}`);
         }
       } catch (error) {
         console.error("[assistant]", error);
@@ -176,6 +182,7 @@ export function AssistantPanel({ className, responseStyle = "concise" }: { class
                         ))}
                       </ul>
                     )}
+                    <SpeakButton id={m.id} text={m.content} className="-ml-1.5 mt-2" />
                   </div>
                 )}
               </motion.div>
@@ -226,6 +233,7 @@ export function AssistantPanel({ className, responseStyle = "concise" }: { class
             maxLength={4000}
             className="max-h-40 min-h-8 flex-1 resize-none bg-transparent py-1.5 text-[13.5px] leading-relaxed outline-none placeholder:text-fg-subtle"
           />
+          <DictationButton value={input} onChange={setInput} size="sm" />
           <motion.button
             type="submit"
             whileTap={{ scale: 0.9 }}
