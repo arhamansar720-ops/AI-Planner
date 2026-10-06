@@ -1,10 +1,9 @@
 "use client";
 
-import { LOCAL_MODEL } from "@/lib/config";
 import type { Plan } from "@/types/plan";
 import { PlanAssembler, type AssemblerEvent } from "../assembler";
 import { buildPlannerUserMessage, PLANNER_SYSTEM_PROMPT, type ContextItem, type PlannerPreferences } from "../prompts";
-import { loadEngine, streamChat } from "./engine";
+import { getActiveModel, loadEngine, streamChat } from "./engine";
 
 /** Prompt plus a complete compact plan must fit in the model's context window. */
 const MAX_PLAN_TOKENS = 5600;
@@ -31,7 +30,7 @@ export async function generatePlanLocally(input: {
     planId: crypto.randomUUID(),
     prompt: input.prompt,
     today: input.today,
-    model: LOCAL_MODEL.id,
+    model: getActiveModel().id,
     preferences: input.preferences,
   });
   const emit = (events: AssemblerEvent[]) => events.forEach(input.onEvent);

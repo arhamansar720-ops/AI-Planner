@@ -35,6 +35,11 @@ services:
         sync: false
       - key: MICROSOFT_CLIENT_SECRET
         sync: false
+      # Shared test account: sign in with username "admin" and this password.
+      # Render generates a random one; see or change it in the Environment tab.
+      # Delete the variable to switch the test account off.
+      - key: DEMO_ADMIN_PASSWORD
+        generateValue: true
       - key: RESEND_API_KEY
         sync: false
       - key: EMAIL_FROM

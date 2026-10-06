@@ -7,7 +7,6 @@ import { PlanGraph } from "@/components/generation/plan-graph";
 import { StageList } from "@/components/generation/stage-list";
 import { StatusIndicator } from "@/components/generation/status-indicator";
 import { PlanAssembler, type AssemblerEvent } from "@/lib/ai/assembler";
-import { LOCAL_MODEL } from "@/lib/config";
 import { ease } from "@/lib/motion";
 import { localToday } from "@/lib/planning/dates";
 import { STAGES, stageIndex, type StageId } from "@/lib/planning/stages";
@@ -36,7 +35,7 @@ function eventsFor(): AssemblerEvent[] {
     planId: "demo",
     prompt: DEMO_PROMPT,
     today: localToday(),
-    model: LOCAL_MODEL.id,
+    model: "Qwen3-4B-q4f16_1-MLC",
     preferences: { dailyMinutes: 45, blockedWeekdays: [] },
   });
   return [
@@ -180,7 +179,7 @@ export function LiveDemo() {
 
         <header className="flex h-12 items-center justify-between border-b border-glass-edge px-5">
           <StatusIndicator label={indicator.label} state={indicator.state} />
-          <span className="text-xs text-fg-subtle">{LOCAL_MODEL.label} · on device</span>
+          <span className="text-xs text-fg-subtle">Qwen3 · on device</span>
         </header>
 
         <div className="grid xl:grid-cols-[232px_minmax(0,1fr)]">

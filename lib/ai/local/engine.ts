@@ -3,6 +3,7 @@
 import type { ChatCompletionMessageParam, MLCEngineInterface } from "@mlc-ai/web-llm";
 import { useSyncExternalStore } from "react";
 import { LOCAL_MODEL } from "@/lib/config";
+import { resolveModel, type GpuCapabilities, type ModelChoice } from "./models";
 
 /**
  * The on-device language model. One engine per tab, running in a Web
@@ -40,10 +41,75 @@ type Engine = Pick<MLCEngineInterface, "chat" | "interruptGenerate">;
 let state: EngineState = { status: "checking" };
 const listeners = new Set<() => void>();
 let enginePromise: Promise<Engine> | null = null;
+let loadedModelId: string | null = null;
+let worker: Worker | null = null;
 let checked = false;
+let capabilities: GpuCapabilities | null = null;
+
+/* Model choice ------------------------------------------------------------- */
+
+const CHOICE_KEY = "forma:model";
+
+function readChoice(): ModelChoice {
+  try {
+    const v = localStorage.getItem(CHOICE_KEY);
+    if (v === "best" || v === "balanced" || v === "light" || v === "auto") return v;
+  } catch {}
+  return "auto";
+}
+
+export type ActiveModel = ReturnType<typeof resolveModel> & { choice: ModelChoice; recommended: ReturnType<typeof resolveModel> };
+
+let activeCache: ActiveModel | null = null;
+function computeActive(): ActiveModel {
+  const choice = typeof window === "undefined" ? "auto" : readChoice();
+  return {
+    ...resolveModel(choice, capabilities, LOCAL_MODEL.overrideId),
+    choice,
+    recommended: resolveModel("auto", capabilities, LOCAL_MODEL.overrideId),
+  };
+}
+
+/** The model this device will use, given the person's choice and its graphics chip. */
+export function getActiveModel(): ActiveModel {
+  return (activeCache ??= computeActive());
+}
+
+const SERVER_ACTIVE = resolveModel("auto", null, LOCAL_MODEL.overrideId);
+const SERVER_MODEL: ActiveModel = { ...SERVER_ACTIVE, choice: "auto", recommended: SERVER_ACTIVE };
+
+export function useActiveModel(): ActiveModel {
+  return useSyncExternalStore(subscribeEngine, getActiveModel, () => SERVER_MODEL);
+}
+
+/** Switch model size. A loaded engine is released; the new model loads on next use. */
+export async function setModelChoice(choice: ModelChoice) {
+  try {
+    localStorage.setItem(CHOICE_KEY, choice);
+  } catch {}
+  activeCache = null;
+  const next = getActiveModel();
+  if (loadedModelId && loadedModelId !== next.id) unload();
+  if (state.status === "unsupported" || state.status === "loading") return set(state);
+  if (!(state.status === "ready" && loadedModelId === next.id)) {
+    const { hasModelInCache } = await import("@mlc-ai/web-llm");
+    const cached = await hasModelInCache(next.id).catch(() => false);
+    set({ status: "idle", cached });
+  } else set(state);
+}
+
+function unload() {
+  const old = enginePromise;
+  enginePromise = null;
+  loadedModelId = null;
+  void old?.then((e) => (e as Engine & { unload?: () => Promise<void> }).unload?.()).catch(() => {});
+  worker?.terminate();
+  worker = null;
+}
 
 function set(next: EngineState) {
   state = next;
+  activeCache = null;
   listeners.forEach((l) => l());
 }
 
@@ -84,16 +150,37 @@ async function check() {
     });
   }
   try {
-    const adapter = await gpu.requestAdapter();
+    const adapter = (await gpu.requestAdapter()) as GpuAdapterLike | null;
     if (!adapter) {
       return set({ status: "unsupported", reason: "This device’s graphics chip can’t run the on-device AI." });
     }
+    capabilities = readCapabilities(adapter);
+    activeCache = null;
     const { hasModelInCache } = await import("@mlc-ai/web-llm");
-    const cached = await hasModelInCache(LOCAL_MODEL.id).catch(() => false);
+    const cached = await hasModelInCache(getActiveModel().id).catch(() => false);
     if (state.status === "checking") set({ status: "idle", cached });
   } catch {
     set({ status: "idle", cached: false });
   }
+}
+
+type GpuAdapterLike = {
+  features: { has(name: string): boolean };
+  limits: { maxBufferSize?: number };
+  info?: { vendor?: string; architecture?: string; isFallbackAdapter?: boolean };
+  isFallbackAdapter?: boolean;
+};
+
+function readCapabilities(adapter: GpuAdapterLike): GpuCapabilities {
+  const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory;
+  return {
+    f16: adapter.features.has("shader-f16"),
+    vendor: adapter.info?.vendor ?? "",
+    architecture: adapter.info?.architecture ?? "",
+    isFallback: Boolean(adapter.info?.isFallbackAdapter ?? adapter.isFallbackAdapter),
+    deviceMemoryGB: typeof memory === "number" ? memory : null,
+    maxBufferSize: adapter.limits.maxBufferSize ?? 0,
+  };
 }
 
 /** Load (downloading the first time) and return the engine. */
@@ -103,6 +190,7 @@ export function loadEngine(): Promise<Engine> {
   if (state.status === "unsupported") return Promise.reject(new Error(state.reason));
   if (enginePromise) return enginePromise;
 
+  const model = getActiveModel();
   const cached = state.status === "idle" ? state.cached : false;
   set({ status: "loading", progress: 0, text: "", cached });
   enginePromise = (async () => {
@@ -114,20 +202,21 @@ export function loadEngine(): Promise<Engine> {
     const chatOptions = { context_window_size: LOCAL_MODEL.contextWindow };
 
     let engine: Engine;
-    let worker: Worker | null = null;
     try {
       worker = createWorker();
       const failed = new Promise<never>((_, reject) => {
         worker!.addEventListener("error", (e) => reject(new Error(`worker: ${e.message || "failed to start"}`)), { once: true });
       });
-      engine = await Promise.race([webllm.CreateWebWorkerMLCEngine(worker, LOCAL_MODEL.id, config, chatOptions), failed]);
+      engine = await Promise.race([webllm.CreateWebWorkerMLCEngine(worker, model.id, config, chatOptions), failed]);
     } catch (error) {
       if (!String((error as Error)?.message ?? "").startsWith("worker:")) throw error;
       // The worker couldn't load (e.g. the CDN is blocked): run on the page instead.
       console.warn("[local-model] worker unavailable, running on the main thread", error);
       worker?.terminate();
-      engine = await webllm.CreateMLCEngine(LOCAL_MODEL.id, config, chatOptions);
+      worker = null;
+      engine = await webllm.CreateMLCEngine(model.id, config, chatOptions);
     }
+    loadedModelId = model.id;
     set({ status: "ready" });
     return engine;
   })().catch((error: unknown) => {
@@ -137,7 +226,9 @@ export function loadEngine(): Promise<Engine> {
     set({
       status: "error",
       message: /memory|OOM|allocate|buffer/i.test(message)
-        ? "This device doesn’t have enough graphics memory for the on-device AI."
+        ? model.tier === "light"
+          ? "This device doesn’t have enough graphics memory for the on-device AI."
+          : "This device doesn’t have enough graphics memory for this model. Choose a lighter one in Settings → AI."
         : "The on-device AI couldn’t start. Check your connection and try again.",
     });
     throw error;
@@ -148,8 +239,9 @@ export function loadEngine(): Promise<Engine> {
 /** Remove the downloaded model from this browser. */
 export async function removeCachedModel() {
   const { deleteModelAllInfoInCache } = await import("@mlc-ai/web-llm");
-  await deleteModelAllInfoInCache(LOCAL_MODEL.id);
-  enginePromise = null;
+  const id = getActiveModel().id;
+  unload();
+  await deleteModelAllInfoInCache(id);
   set({ status: "idle", cached: false });
 }
 

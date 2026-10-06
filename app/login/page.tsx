@@ -35,6 +35,7 @@ export default async function LoginPage({ searchParams }: Props) {
           initialMode={mode === "signup" ? "signup" : "signin"}
           providers={enabledProviders()}
           canReset={emailConfigured()}
+          demoAccount={(process.env.DEMO_ADMIN_PASSWORD ?? "").length >= 8}
         />
       ) : (
         <div className="m-auto w-full max-w-[420px] px-6">

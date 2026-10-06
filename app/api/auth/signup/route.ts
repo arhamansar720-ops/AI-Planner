@@ -19,6 +19,8 @@ export async function POST(request: Request) {
     return jsonError(429, "Too many new accounts from here. Try again later.");
   }
   const { email, password, name } = body.data;
+  // Reserved for the shared test account.
+  if (email.toLowerCase().endsWith("@forma.local")) return jsonError(400, "Use a real email address.");
   if (await findUserByEmail(email)) return jsonError(409, "An account with that email already exists. Try signing in.");
   try {
     const user = await createUser({ email, passwordHash: await hashPassword(password), name });

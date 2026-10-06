@@ -12,8 +12,7 @@ import { PromptHeading } from "@/components/home/prompt-heading";
 import { SuggestionChips } from "@/components/home/suggestion-chips";
 import { NEW_PLAN_EVENT, TopNav, type NavUser } from "@/components/shell/top-nav";
 import type { PlannerPreferences } from "@/lib/ai/prompts";
-import { getEngineState } from "@/lib/ai/local/engine";
-import { LOCAL_MODEL } from "@/lib/config";
+import { getEngineState, useActiveModel } from "@/lib/ai/local/engine";
 import { ease } from "@/lib/motion";
 import { localToday } from "@/lib/planning/dates";
 import { speakIfAutoRead } from "@/lib/voice/speech";
@@ -61,6 +60,7 @@ export function PlannerExperience({
   }, [router, saveDraft]);
 
   const generation = usePlanGeneration({ onUnauthorized: goToLogin });
+  const model = useActiveModel();
   const { state } = generation;
 
   // Restore an unsent prompt (e.g. after signing in, or a failed attempt).
@@ -256,7 +256,7 @@ export function PlannerExperience({
                 />
                 <PlanningCanvas
                   state={state}
-                  modelLabel={`${LOCAL_MODEL.label} · on device`}
+                  modelLabel={`${model.name} · on device`}
                   onRetry={() => state.request && generation.start(state.request)}
                   onEdit={() => reset({ keepPrompt: true })}
                   onClarify={(answer) =>

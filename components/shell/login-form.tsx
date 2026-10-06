@@ -22,12 +22,14 @@ export function LoginForm({
   initialMode,
   providers,
   canReset,
+  demoAccount,
 }: {
   next: string;
   initialError: string | null;
   initialMode: "signin" | "signup";
   providers: Record<Provider, boolean>;
   canReset: boolean;
+  demoAccount: boolean;
 }) {
   const [mode, setMode] = useState<Mode>(initialMode);
   const [email, setEmail] = useState("");
@@ -162,8 +164,17 @@ export function LoginForm({
                     </div>
                   )}
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                    <Label htmlFor="email">{mode === "signin" ? "Email or username" : "Email"}</Label>
+                    <Input
+                      id="email"
+                      type={mode === "signin" ? "text" : "email"}
+                      required
+                      autoComplete={mode === "signin" ? "username" : "email"}
+                      autoCapitalize="none"
+                      spellCheck={false}
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
                   </div>
                   {mode !== "forgot" && (
                     <div className="flex flex-col gap-1.5">
@@ -209,6 +220,15 @@ export function LoginForm({
                     {mode === "signin" ? "Sign in" : mode === "signup" ? "Create account" : "Send reset link"}
                   </Button>
                 </form>
+                {mode === "signin" && demoAccount && (
+                  <p className="mt-5 rounded-xl border border-dashed border-border-strong px-3 py-2.5 text-center text-xs leading-relaxed text-fg-muted">
+                    Testing? Sign in with the username{" "}
+                    <button type="button" onClick={() => setEmail("admin")} className="font-mono font-medium text-fg underline underline-offset-2">
+                      admin
+                    </button>{" "}
+                    and the test password set for this site.
+                  </p>
+                )}
                 {mode === "signup" && (
                   <p className="mt-5 text-center text-xs leading-relaxed text-fg-subtle">
                     Your plans are private to your account.

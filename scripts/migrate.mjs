@@ -1,6 +1,7 @@
 // Applies db/migrations/*.sql in order, once each, inside transactions.
 // Runs on every start (Render's free plan has no pre-deploy step); an
 // advisory lock keeps two instances from migrating at the same time.
+import { randomBytes, scryptSync } from "node:crypto";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -43,7 +44,34 @@ try {
     }
   }
   console.log("[migrate] database is up to date");
+  await syncDemoAdmin(client);
 } finally {
   await client.query("select pg_advisory_unlock(727272)").catch(() => {});
   await client.end();
+}
+
+/**
+ * A shared test account, username "admin", whose password comes from
+ * DEMO_ADMIN_PASSWORD. Set the variable to create it (or change its
+ * password); remove it to switch the account's password sign-in off.
+ */
+async function syncDemoAdmin(db) {
+  const email = "admin@forma.local";
+  const password = process.env.DEMO_ADMIN_PASSWORD ?? "";
+  if (password.length >= 8) {
+    const salt = randomBytes(16);
+    const hash = scryptSync(password.normalize("NFKC"), salt, 64, { N: 16384, r: 8, p: 1, maxmem: 64 * 1024 * 1024 });
+    const stored = ["scrypt", 16384, 8, 1, salt.toString("base64"), hash.toString("base64")].join("$");
+    await db.query(
+      `insert into users (email, password_hash, display_name, onboarded_at)
+       values ($1, $2, 'Admin', now())
+       on conflict (email) do update set password_hash = excluded.password_hash, updated_at = now()`,
+      [email, stored],
+    );
+    console.log('[migrate] test account "admin" is enabled');
+  } else {
+    const res = await db.query(`update users set password_hash = null where email = $1 and password_hash is not null`, [email]);
+    if (password) console.log("[migrate] DEMO_ADMIN_PASSWORD must be at least 8 characters; test account left disabled");
+    else if (res.rowCount) console.log('[migrate] test account "admin" disabled (DEMO_ADMIN_PASSWORD not set)');
+  }
 }

@@ -20,7 +20,8 @@ Next.js 16 (App Router, Turbopack) · TypeScript · Tailwind CSS 4 · Radix prim
 2. Open the site at the `forma` service's `.onrender.com` address. Email sign-up works right away.
 3. **Optional: Google sign-in.** In Google Cloud Console → APIs & Services → Credentials, create an OAuth client (Web application) with the authorized redirect URI `https://<your-app>.onrender.com/auth/callback/google`. Put its ID and secret in the service's **Environment** tab as `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
 4. **Optional: Microsoft sign-in.** In the Azure portal → Microsoft Entra ID → App registrations, register an app (any organizational directory and personal Microsoft accounts) with the Web redirect URI `https://<your-app>.onrender.com/auth/callback/microsoft`, create a client secret, and set `MICROSOFT_CLIENT_ID` and `MICROSOFT_CLIENT_SECRET`.
-5. **Optional: password-reset email.** Create a free [Resend](https://resend.com) API key and set `RESEND_API_KEY` and `EMAIL_FROM`. Without them, “Forgot password?” is hidden.
+5. **Test account.** The Blueprint generates `DEMO_ADMIN_PASSWORD`; sign in with the username `admin` and that password (see it, or change it, in the service's **Environment** tab). Delete the variable to switch the account off.
+6. **Optional: password-reset email.** Create a free [Resend](https://resend.com) API key and set `RESEND_API_KEY` and `EMAIL_FROM`. Without them, “Forgot password?” is hidden.
 
 Free-plan notes: a free web service sleeps after 15 minutes without visitors and takes about a minute to wake. **A free Render Postgres database is deleted 30 days after creation unless it's upgraded to a paid plan**, so upgrade `forma-db` before then to keep your data.
 
@@ -43,13 +44,18 @@ Free-plan notes: a free web service sleeps after 15 minutes without visitors and
 
 ### On-device AI
 
-There is no AI provider and no API key. Plans and assistant answers come from **Qwen3 8B** (4-bit, via [WebLLM](https://github.com/mlc-ai/web-llm)) running on the visitor's GPU through WebGPU:
+There is no AI provider and no API key. Plans and assistant answers come from **Qwen3** running on the visitor's GPU through WebGPU ([WebLLM](https://github.com/mlc-ai/web-llm)), in one of three sizes (`lib/ai/local/models.ts`):
 
-- The model (about 5 GB) downloads from Hugging Face on first use and is cached by the browser; later visits load it in seconds. The prompt box shows its status, and Settings can remove it.
-- It runs in a module Web Worker (`lib/ai/local/engine.ts`) so the interface keeps animating while it writes. The worker loads the same pinned WebLLM version from jsDelivr; if that fails it runs on the main thread.
-- It needs Chrome or Edge with WebGPU and roughly 6 GB of graphics memory. Unsupported devices get a clear message instead of a broken flow.
-- The context window is raised to 8,192 tokens so a prompt and a complete plan fit; the planning prompt asks for compact plans (3–5 phases of 3–5 tasks).
-- To use a different model, set `NEXT_PUBLIC_LOCAL_MODEL` to any WebLLM prebuilt model id (for example `Qwen3-4B-q4f16_1-MLC` for weaker machines).
+| Size | Model | Download | For |
+| --- | --- | --- | --- |
+| Best | Qwen3 8B | about 4.5 GB | Dedicated NVIDIA/AMD graphics, 6 GB+ |
+| Balanced | Qwen3 4B | about 2.3 GB | Most recent laptops |
+| Light | Qwen3 1.7B | about 1 GB | Older or low-memory computers |
+
+- **Auto** (the default) reads the graphics chip (vendor, memory hints, software rendering) and picks a size; people can override it in *Settings → AI*. Chips without 16-bit shader support automatically get the 32-bit build of the same size, which the 16-bit builds would otherwise fail on.
+- The model downloads from Hugging Face on first use and is cached by the browser. It runs in a module Web Worker (`lib/ai/local/engine.ts`) loading the same pinned WebLLM version from jsDelivr, falling back to the main thread.
+- If a model runs out of graphics memory, the error points to a lighter size.
+- To pin one model for everyone, set `NEXT_PUBLIC_LOCAL_MODEL` to any WebLLM prebuilt model id.
 
 ### Setup and modes
 

@@ -3,8 +3,8 @@
 import { Cpu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/overlays";
-import { loadEngine, useEngineState, type EngineState } from "@/lib/ai/local/engine";
-import { LOCAL_MODEL } from "@/lib/config";
+import Link from "next/link";
+import { loadEngine, useActiveModel, useEngineState, type EngineState } from "@/lib/ai/local/engine";
 import { cn } from "@/lib/utils/cn";
 
 export function engineSummary(state: EngineState): { label: string; tone: "ok" | "muted" | "busy" | "warn" } {
@@ -27,10 +27,18 @@ export function engineSummary(state: EngineState): { label: string; tone: "ok" |
 const DOT = { ok: "bg-success", muted: "bg-fg-subtle", busy: "bg-accent pulse-dot", warn: "bg-warning" } as const;
 
 /** What the on-device model is doing, and the one action that matters. */
-export function LocalModelDetails({ state }: { state: EngineState }) {
+export function LocalModelDetails({ state, settingsLink = true }: { state: EngineState; settingsLink?: boolean }) {
+  const model = useActiveModel();
   return (
     <div className="flex flex-col gap-2 text-[13px] leading-relaxed">
-      <p className="font-medium text-fg">On-device AI · {LOCAL_MODEL.label}</p>
+      <p className="flex items-baseline justify-between gap-2 font-medium text-fg">
+        On-device AI · {model.name}
+        {settingsLink && (
+          <Link href="/settings#ai" className="text-xs font-normal text-fg-subtle underline-offset-2 hover:text-fg hover:underline">
+            Change
+          </Link>
+        )}
+      </p>
       <p className="text-fg-muted">
         Plans are made by an open model running privately in your browser. Nothing you type is sent to an AI service.
       </p>
@@ -38,7 +46,7 @@ export function LocalModelDetails({ state }: { state: EngineState }) {
       {state.status === "error" && <p className="text-warning">{state.message}</p>}
       {state.status === "idle" && !state.cached && (
         <p className="text-fg-muted">
-          The first time, it downloads {LOCAL_MODEL.downloadLabel} (once — later visits start in seconds). It needs Chrome or Edge on a
+          The first time, it downloads {model.download} (once — later visits start in seconds). It needs Chrome or Edge on a
           computer with a recent graphics chip.
         </p>
       )}
@@ -52,7 +60,7 @@ export function LocalModelDetails({ state }: { state: EngineState }) {
       )}
       {(state.status === "idle" || state.status === "error") && (
         <Button variant="primary" size="sm" className="mt-1 self-start" onClick={() => void loadEngine().catch(() => {})}>
-          {state.status === "error" ? "Try again" : state.cached ? "Load now" : `Download now · ${LOCAL_MODEL.downloadLabel}`}
+          {state.status === "error" ? "Try again" : state.cached ? "Load now" : `Download now · ${model.download}`}
         </Button>
       )}
     </div>
@@ -62,6 +70,7 @@ export function LocalModelDetails({ state }: { state: EngineState }) {
 export function LocalModelChip() {
   const state = useEngineState();
   const { label, tone } = engineSummary(state);
+  const model = useActiveModel();
   return (
     <Popover>
       <PopoverTrigger
@@ -69,7 +78,7 @@ export function LocalModelChip() {
         aria-label={`On-device model: ${label}`}
       >
         <Cpu className="size-3.5 opacity-70" aria-hidden />
-        <span className="hidden sm:inline">{LOCAL_MODEL.label}</span>
+        <span className="hidden sm:inline">{model.name}</span>
         <span className={cn("size-1.5 rounded-full", DOT[tone])} aria-hidden />
         <span className="tabular-nums">{label}</span>
       </PopoverTrigger>
