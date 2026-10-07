@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-const PROTECTED = ["/plan", "/history", "/settings", "/setup", "/chats", "/personalize"];
+const PROTECTED = ["/plan", "/history", "/settings", "/setup", "/chats", "/personalize", "/today"];
 const SESSION_COOKIE = "forma_session";
 
 /**

@@ -140,12 +140,12 @@ To rename the product, edit `product` in `lib/config.ts`.
 ## Site and app
 
 - **Marketing site** (`app/(marketing)/`): `/` (home), `/features`, `/how-it-works` and `/pricing`, sharing one nav and footer (`components/landing/`). The live demo is the real planning canvas replaying a streamed plan (`components/landing/demo-plan.ts`) through the real `PlanAssembler`. Signed-in visitors see **Open app** and their account menu instead of **Sign in**. Animations in `components/reactbits/` come from [React Bits](https://github.com/DavidHDev/react-bits) (MIT + Commons Clause, see the license file there). The pricing tiers are placeholders: no payment provider is connected.
-- **The app** lives at `/app` (the prompt and planning canvas), with `/plan/[id]`, `/chats`, `/history`, `/personalize`, `/settings` and `/setup`.
+- **The app** lives at `/app` (the prompt and planning canvas), with `/today`, `/plan/[id]`, `/chats`, `/history`, `/personalize`, `/settings` and `/setup`.
 - **Sign-in** (`/login`): email and password, password reset (`/reset-password`), and Google or Microsoft when their credentials are set.
 
 ### Account menu and Personalize
 
-The avatar menu holds Personalize, Chats, Plans, Settings, light/dark/system and a color-theme row. `/personalize` covers:
+The avatar menu holds Today, Personalize, Chats, Plans, Settings, light/dark/system and a color-theme row. `/personalize` covers:
 
 - **Mode** (see Setup and modes below).
 - **Appearance:** light, dark or system, plus color themes (Cobalt, Pastel pink, Baby blue, Mint, Lavender, Peach, Graphite). Each palette is a set of CSS variables in `app/globals.css`, checked for WCAG AA contrast in light and dark.
@@ -164,6 +164,12 @@ Read-only, with no third-party API keys:
 - **Using them:** in the prompt box, *Add context → Connected tools* attaches upcoming deadlines to a new plan.
 - **The other direction:** every plan has *Add to calendar* (`/api/plans/[id]/calendar`), an .ics file for Outlook, Google or Apple Calendar.
 
+### Today, focus and reminders
+
+- **Today** (`/today`): the day's work sessions from every active plan, with overdue and due-today tasks, the next six days, and focus totals. Start a focus session or tick a task off from any row. Finishing a task reflows the plan, so its later sessions disappear and the rest move up. Data comes from `GET /api/today` (`lib/db/today.ts`) using the browser's local date.
+- **Focus timer** (`components/focus/`): available on every page. 15, 25 or 50 minute blocks with a 5 minute break (10 after 50), +5 minutes, pause (Space), minimize to a floating pill (Esc), and *Mark task done*. It ends with a soft chime, and the voice says so when voice is on. The state is kept in localStorage, so a reload doesn't lose it, and focused minutes are saved to `focus_sessions` (`POST /api/focus`, `db/migrations/002_focus.sql`).
+- **Reminders** (`components/today/reminders.tsx`): five minutes before each session, plus a once-a-day deadline note. They come from an open Forma tab: a system notification when the tab is in the background and notifications are allowed (Today asks), otherwise an in-app toast with *Start focus*. The **Task reminders** setting turns them off. With no tab open nothing is sent, because there's no push server.
+
 ### Chats
 
 `/chats` lists every plan that has an assistant conversation, with search and the full transcript. *Continue this chat* opens the plan with the assistant focused.
@@ -174,7 +180,7 @@ Read-only, with no third-party API keys:
 
 ## Current limitations
 
-- Notification preferences are saved, but this repository doesn't send email. Connect an email provider to deliver them.
+- Reminders only fire while a Forma tab is open (no push server). Notification preferences are saved, but this repository doesn't send email. Connect an email provider to deliver them.
 - File context accepts text formats (`.txt`, `.md`, `.csv`, `.json`). Links are passed as URLs and not fetched.
 - The on-device model is much smaller than a hosted frontier model: plans are simpler, and it can't run on phones or low-memory GPUs.
 - Attached context (notes, files, earlier plans) shares the 8,192-token window with the plan, so very long attachments can crowd out the plan.

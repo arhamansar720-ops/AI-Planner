@@ -1,12 +1,13 @@
 "use client";
 
-import { History, MessagesSquare, Plus } from "lucide-react";
+import { History, MessagesSquare, Plus, Sun } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Wordmark } from "@/components/ui/brand";
 import { Button } from "@/components/ui/button";
 import { Tooltip } from "@/components/ui/overlays";
 import { cn } from "@/lib/utils/cn";
+import { Reminders } from "@/components/today/reminders";
 import { UserMenu } from "./user-menu";
 
 export type NavUser = { email: string; name: string } | null;
@@ -14,6 +15,7 @@ export type NavUser = { email: string; name: string } | null;
 export const NEW_PLAN_EVENT = "forma:new-plan";
 
 const LINKS = [
+  { href: "/today", label: "Today", icon: Sun },
   { href: "/chats", label: "Chats", icon: MessagesSquare },
   { href: "/history", label: "History", icon: History },
 ] as const;
@@ -71,6 +73,7 @@ export function TopNav({ user, className, children }: { user: NavUser; className
               </Button>
             </Tooltip>
             <UserMenu user={user} />
+            <Reminders />
           </>
         ) : (
           <>

@@ -227,11 +227,11 @@ export function SettingsForm({
           </Row>
         </Group>
 
-        <Group id="notifications" title="Notifications" description="Saved to your account. Email delivery requires an email provider to be configured for this deployment.">
+        <Group id="notifications" title="Notifications" description="Saved to your account. Reminders appear while Forma is open in a tab. Email delivery requires an email provider to be configured for this deployment.">
           <Row label="Weekly summary" hint="A Monday overview of what’s ahead.">
             <Switch checked={prefs.weeklySummary} onCheckedChange={(v) => save({ weeklySummary: v })} label="Weekly summary" />
           </Row>
-          <Row label="Task reminders" hint="A nudge on the day a task is due.">
+          <Row label="Task reminders" hint="A heads-up five minutes before each work session, and a note when tasks are due, while Forma is open.">
             <Switch checked={prefs.taskReminders} onCheckedChange={(v) => save({ taskReminders: v })} label="Task reminders" />
           </Row>
         </Group>
