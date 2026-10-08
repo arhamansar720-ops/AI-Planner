@@ -20,3 +20,20 @@ test("tokens are random and only their hashes are stored", () => {
   assert.match(hashToken(t), /^[0-9a-f]{64}$/);
   assert.equal(hashToken(t), hashToken(t));
 });
+
+test("the test account defaults to Admin123! and can be switched off", async () => {
+  const { demoPassword, DEMO_DEFAULT_PASSWORD } = await import("@/lib/auth/demo");
+  const before = process.env.DEMO_ADMIN_PASSWORD;
+  try {
+    delete process.env.DEMO_ADMIN_PASSWORD;
+    assert.equal(demoPassword(), DEMO_DEFAULT_PASSWORD);
+    assert.equal(DEMO_DEFAULT_PASSWORD, "Admin123!");
+    process.env.DEMO_ADMIN_PASSWORD = "off";
+    assert.equal(demoPassword(), "");
+    process.env.DEMO_ADMIN_PASSWORD = "something-else";
+    assert.equal(demoPassword(), "something-else");
+  } finally {
+    if (before === undefined) delete process.env.DEMO_ADMIN_PASSWORD;
+    else process.env.DEMO_ADMIN_PASSWORD = before;
+  }
+});

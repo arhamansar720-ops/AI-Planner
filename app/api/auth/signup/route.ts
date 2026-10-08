@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { DEMO_EMAIL } from "@/lib/auth/demo";
 import { hashPassword } from "@/lib/auth/password";
 import { clientIp, rateLimited } from "@/lib/auth/rate-limit";
 import { createSession } from "@/lib/auth/session";
@@ -21,6 +22,7 @@ export async function POST(request: Request) {
   const { email, password, name } = body.data;
   // Reserved for the shared test account.
   if (email.toLowerCase().endsWith("@forma.local")) return jsonError(400, "Use a real email address.");
+  if (email.toLowerCase() === DEMO_EMAIL) return jsonError(409, "That’s the shared test account. Sign in instead.");
   if (await findUserByEmail(email)) return jsonError(409, "An account with that email already exists. Try signing in.");
   try {
     const user = await createUser({ email, passwordHash: await hashPassword(password), name });

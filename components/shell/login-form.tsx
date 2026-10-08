@@ -29,7 +29,7 @@ export function LoginForm({
   initialMode: "signin" | "signup";
   providers: Record<Provider, boolean>;
   canReset: boolean;
-  demoAccount: boolean;
+  demoAccount: { email: string; password: string | null } | null;
 }) {
   const [mode, setMode] = useState<Mode>(initialMode);
   const [email, setEmail] = useState("");
@@ -222,11 +222,24 @@ export function LoginForm({
                 </form>
                 {mode === "signin" && demoAccount && (
                   <p className="mt-5 rounded-xl border border-dashed border-border-strong px-3 py-2.5 text-center text-xs leading-relaxed text-fg-muted">
-                    Testing? Sign in with the username{" "}
-                    <button type="button" onClick={() => setEmail("admin")} className="font-mono font-medium text-fg underline underline-offset-2">
-                      admin
-                    </button>{" "}
-                    and the test password set for this site.
+                    Testing? Use{" "}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEmail(demoAccount.email);
+                        if (demoAccount.password) setPassword(demoAccount.password);
+                      }}
+                      className="font-mono font-medium text-fg underline underline-offset-2"
+                    >
+                      {demoAccount.email}
+                    </button>
+                    {demoAccount.password ? (
+                      <>
+                        {" "}with the password <span className="font-mono font-medium text-fg">{demoAccount.password}</span>.
+                      </>
+                    ) : (
+                      " with the test password set for this site."
+                    )}
                   </p>
                 )}
                 {mode === "signup" && (

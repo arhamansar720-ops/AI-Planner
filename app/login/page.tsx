@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { LoginForm } from "@/components/shell/login-form";
 import { Wordmark } from "@/components/ui/brand";
+import { DEMO_DEFAULT_PASSWORD, DEMO_EMAIL, demoPassword } from "@/lib/auth/demo";
 import { emailConfigured } from "@/lib/auth/email";
 import { enabledProviders } from "@/lib/auth/oauth";
 import { getSession } from "@/lib/auth/session";
@@ -19,6 +20,13 @@ const LOGIN_ERRORS: Record<string, string> = {
 
 type Props = { searchParams: Promise<{ next?: string; error?: string; mode?: string }> };
 
+/** The test account's sign-in, shown on the form only while it uses the published default password. */
+function demoAccount() {
+  const password = demoPassword();
+  if (!password) return null;
+  return { email: DEMO_EMAIL, password: password === DEMO_DEFAULT_PASSWORD ? password : null };
+}
+
 export default async function LoginPage({ searchParams }: Props) {
   const { next, error, mode } = await searchParams;
   if (isDatabaseConfigured() && (await getSession()).user) redirect(safeNext(next));
@@ -35,7 +43,7 @@ export default async function LoginPage({ searchParams }: Props) {
           initialMode={mode === "signup" ? "signup" : "signin"}
           providers={enabledProviders()}
           canReset={emailConfigured()}
-          demoAccount={(process.env.DEMO_ADMIN_PASSWORD ?? "").length >= 8}
+          demoAccount={demoAccount()}
         />
       ) : (
         <div className="m-auto w-full max-w-[420px] px-6">

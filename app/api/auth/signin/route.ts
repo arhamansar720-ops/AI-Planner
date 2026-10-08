@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { DEMO_EMAIL, DEMO_USERNAME } from "@/lib/auth/demo";
 import { verifyPassword } from "@/lib/auth/password";
 import { clientIp, rateLimited } from "@/lib/auth/rate-limit";
 import { createSession } from "@/lib/auth/session";
@@ -8,13 +9,11 @@ import { jsonError, readJson } from "@/lib/utils/api";
 
 const Schema = z.object({ email: z.string().trim().min(1).max(320), password: z.string().min(1).max(200) });
 
-/** The shared test account signs in with the username "admin" (see scripts/migrate.mjs). */
-const DEMO_USERNAME = "admin";
-const DEMO_EMAIL = "admin@forma.local";
 
 export async function POST(request: Request) {
   const body = await readJson(request, Schema);
   if ("error" in body) return body.error;
+  // The shared test account can also sign in with just "admin" (lib/auth/demo.ts).
   const identifier = body.data.email.toLowerCase();
   const email = identifier === DEMO_USERNAME ? DEMO_EMAIL : identifier;
   const { password } = body.data;

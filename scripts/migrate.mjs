@@ -51,13 +51,19 @@ try {
 }
 
 /**
- * A shared test account, username "admin", whose password comes from
- * DEMO_ADMIN_PASSWORD. Set the variable to create it (or change its
- * password); remove it to switch the account's password sign-in off.
+ * A shared test account: admin@forma.com (or the username "admin"). The
+ * password is DEMO_ADMIN_PASSWORD, or Admin123! when that isn't set; set it
+ * to "off" to switch the account's password sign-in off. Mirrors lib/auth/demo.ts.
  */
 async function syncDemoAdmin(db) {
-  const email = "admin@forma.local";
-  const password = process.env.DEMO_ADMIN_PASSWORD ?? "";
+  const email = "admin@forma.com";
+  const raw = process.env.DEMO_ADMIN_PASSWORD;
+  const password = !raw ? "Admin123!" : raw.toLowerCase() === "off" ? "" : raw;
+  // The account used to live at admin@forma.local; keep its plans.
+  await db.query(
+    `update users set email = $1 where email = 'admin@forma.local' and not exists (select 1 from users where email = $1)`,
+    [email],
+  );
   if (password.length >= 8) {
     const salt = randomBytes(16);
     const hash = scryptSync(password.normalize("NFKC"), salt, 64, { N: 16384, r: 8, p: 1, maxmem: 64 * 1024 * 1024 });
@@ -68,10 +74,10 @@ async function syncDemoAdmin(db) {
        on conflict (email) do update set password_hash = excluded.password_hash, updated_at = now()`,
       [email, stored],
     );
-    console.log('[migrate] test account "admin" is enabled');
+    console.log(`[migrate] test account ${email} is enabled`);
   } else {
     const res = await db.query(`update users set password_hash = null where email = $1 and password_hash is not null`, [email]);
     if (password) console.log("[migrate] DEMO_ADMIN_PASSWORD must be at least 8 characters; test account left disabled");
-    else if (res.rowCount) console.log('[migrate] test account "admin" disabled (DEMO_ADMIN_PASSWORD not set)');
+    else if (res.rowCount) console.log("[migrate] test account disabled (DEMO_ADMIN_PASSWORD=off)");
   }
 }
