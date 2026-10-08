@@ -1,5 +1,6 @@
 "use client";
 
+import { ProviderLogo } from "@/components/connections/provider-logo";
 import { AnimatePresence, motion, useInView } from "framer-motion";
 import { ArrowUp, Check, CornerDownLeft, Mic } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -16,7 +17,11 @@ export function WorksWith() {
         <p className="shrink-0 font-mono text-[11.5px] uppercase tracking-[0.14em] text-fg-subtle">Plans around</p>
         <ul className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 sm:justify-end">
           {PROVIDERS.map((p) => (
-            <li key={p.id} className="text-[15px] font-semibold tracking-[-0.02em] text-fg-subtle transition-colors hover:text-fg">
+            <li
+              key={p.id}
+              className="group flex items-center gap-2 text-[15px] font-semibold tracking-[-0.02em] text-fg-subtle transition-colors hover:text-fg"
+            >
+              <ProviderLogo id={p.id} size={22} className="opacity-80 grayscale transition-[filter,opacity] group-hover:opacity-100 group-hover:grayscale-0" />
               {p.name}
             </li>
           ))}

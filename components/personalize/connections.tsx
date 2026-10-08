@@ -1,5 +1,6 @@
 "use client";
 
+import { ProviderLogo } from "@/components/connections/provider-logo";
 import { AnimatePresence, motion } from "framer-motion";
 import { CalendarCheck2, Check, Unplug } from "lucide-react";
 import { useState, useSyncExternalStore } from "react";
@@ -50,13 +51,7 @@ export function ConnectionsSection({ initial }: { initial: PublicConnection[] })
               )}
             >
               <div className="flex items-start gap-3">
-                <span
-                  className="flex size-10 shrink-0 items-center justify-center rounded-xl text-[17px] font-bold text-white shadow-[inset_0_-2px_0_rgb(0_0_0/0.18)]"
-                  style={{ background: p.color }}
-                  aria-hidden
-                >
-                  {p.name[0]}
-                </span>
+                <ProviderLogo id={p.id} />
                 <div className="min-w-0 flex-1">
                   <p className="flex items-center gap-2 text-[14.5px] font-semibold">
                     {p.name}
@@ -218,9 +213,7 @@ function ConnectDialog({
         {provider && (
           <>
             <div className="flex items-center gap-3">
-              <span className="flex size-10 items-center justify-center rounded-xl text-[17px] font-bold text-white" style={{ background: provider.color }} aria-hidden>
-                {provider.name[0]}
-              </span>
+              <ProviderLogo id={provider.id} />
               <div>
                 <DialogTitle className="text-[16px] font-semibold">Connect {provider.name}</DialogTitle>
                 <DialogDescription className="text-[13px] text-fg-muted">{provider.blurb}</DialogDescription>

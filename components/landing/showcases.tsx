@@ -1,5 +1,6 @@
 "use client";
 
+import { ProviderLogo } from "@/components/connections/provider-logo";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowUp, CalendarPlus, Mic, Volume2 } from "lucide-react";
 import { useState, useSyncExternalStore } from "react";
@@ -234,13 +235,7 @@ export function ConnectionsVisual() {
             whileHover={{ y: -4 }}
             className="flex flex-col items-center gap-2 rounded-2xl border border-border bg-surface px-2 py-4 shadow-xs"
           >
-            <span
-              className="flex size-10 items-center justify-center rounded-xl text-[17px] font-bold text-white shadow-[inset_0_-2px_0_rgb(0_0_0/0.18)]"
-              style={{ background: p.color }}
-              aria-hidden
-            >
-              {p.name[0]}
-            </span>
+            <ProviderLogo id={p.id} size={44} />
             <span className="text-center text-[12.5px] font-medium leading-tight">{p.name}</span>
           </motion.div>
         ))}

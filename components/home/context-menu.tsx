@@ -1,5 +1,6 @@
 "use client";
 
+import { ProviderLogo } from "@/components/connections/provider-logo";
 import { ArrowLeft, CalendarRange, FileText, Layers, Link2, NotebookPen, Plus } from "lucide-react";
 import Link from "next/link";
 import { useRef, useState } from "react";
@@ -213,9 +214,7 @@ export function AddContextButton({
                       onClick={() => attachConnection(c)}
                       className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] hover:bg-surface-2 disabled:opacity-50"
                     >
-                      <span className="flex size-6 shrink-0 items-center justify-center rounded-md text-[11px] font-bold text-white" style={{ background: p?.color }}>
-                        {p?.name[0]}
-                      </span>
+                      <ProviderLogo id={c.provider} size={24} />
                       <span className="flex-1 truncate">{p?.name ?? c.provider}</span>
                       {loadingPlan === c.id && <span className="text-xs text-fg-subtle">Reading…</span>}
                     </button>
@@ -230,9 +229,7 @@ export function AddContextButton({
                     }}
                     className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] hover:bg-surface-2"
                   >
-                    <span className="flex size-6 shrink-0 items-center justify-center rounded-md text-[11px] font-bold text-white" style={{ background: getProvider("skyward")?.color }}>
-                      S
-                    </span>
+                    <ProviderLogo id="skyward" size={24} />
                     <span className="flex-1 truncate">Skyward</span>
                   </button>
                 )}
