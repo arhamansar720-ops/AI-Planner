@@ -173,6 +173,11 @@ Read-only, with no third-party API keys:
 - **Focus timer** (`components/focus/`): available on every page. 15, 25 or 50 minute blocks with a 5 minute break (10 after 50), +5 minutes, pause (Space), minimize to a floating pill (Esc), and *Mark task done*. It ends with a soft chime, and the voice says so when voice is on. The state is kept in localStorage, so a reload doesn't lose it, and focused minutes are saved to `focus_sessions` (`POST /api/focus`, `db/migrations/002_focus.sql`).
 - **Reminders** (`components/today/reminders.tsx`): five minutes before each session, plus a once-a-day deadline note. They come from an open Forma tab: a system notification when the tab is in the background and notifications are allowed (Today asks), otherwise an in-app toast with *Start focus*. The **Task reminders** setting turns them off. With no tab open nothing is sent, because there's no push server.
 
+### Insights and the command menu
+
+- **Insights** (`/insights`): your streak (days with focus time or a finished task), focus and finished tasks over the last 30 days, the share finished by their due date, a 12-month focus heatmap, tasks finished per week, the next two weeks of scheduled work against your daily time (days over it are flagged), and progress on every active plan. Days are your local days (the browser sends its time zone). Finish times come from `tasks.completed_at`, kept by a trigger (`db/migrations/003_completed_at.sql`). Every chart has hover details and a screen-reader table.
+- **Command menu** (⌘K or Ctrl+K, or *Search* in the top bar): jump to any page or plan, start a 15, 25 or 50 minute focus session, or switch theme, all from the keyboard.
+
 ### Chats
 
 `/chats` lists every plan that has an assistant conversation, with search and the full transcript. *Continue this chat* opens the plan with the assistant focused.

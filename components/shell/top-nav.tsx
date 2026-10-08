@@ -1,6 +1,6 @@
 "use client";
 
-import { History, MessagesSquare, Plus, Sun } from "lucide-react";
+import { History, MessagesSquare, Plus, Search, Sun } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Wordmark } from "@/components/ui/brand";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip } from "@/components/ui/overlays";
 import { cn } from "@/lib/utils/cn";
 import { Reminders } from "@/components/today/reminders";
+import { CommandPalette, OPEN_COMMANDS_EVENT } from "./command-palette";
 import { UserMenu } from "./user-menu";
 
 export type NavUser = { email: string; name: string } | null;
@@ -37,6 +38,21 @@ export function TopNav({ user, className, children }: { user: NavUser; className
       <nav className="ml-auto flex items-center gap-0.5" aria-label="Primary">
         {user ? (
           <>
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new Event(OPEN_COMMANDS_EVENT))}
+              className="mr-1 hidden h-8 items-center gap-2 rounded-lg border border-border bg-surface/60 pl-2.5 pr-1.5 text-[13px] text-fg-subtle transition-colors hover:border-border-strong hover:text-fg-muted md:inline-flex"
+              aria-label="Search and commands"
+            >
+              <Search className="size-3.5" aria-hidden />
+              Search
+              <kbd className="ml-3 rounded border border-border px-1 font-mono text-[10.5px]">⌘K</kbd>
+            </button>
+            <Tooltip content="Search (⌘K)">
+              <Button variant="ghost" size="icon" className="md:hidden" aria-label="Search and commands" onClick={() => window.dispatchEvent(new Event(OPEN_COMMANDS_EVENT))}>
+                <Search />
+              </Button>
+            </Tooltip>
             {LINKS.map(({ href, label, icon: Icon }) => (
               <span key={href} className="contents">
                 <Button
@@ -74,6 +90,7 @@ export function TopNav({ user, className, children }: { user: NavUser; className
             </Tooltip>
             <UserMenu user={user} />
             <Reminders />
+            <CommandPalette />
           </>
         ) : (
           <>

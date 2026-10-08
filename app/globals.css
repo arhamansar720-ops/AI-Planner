@@ -291,6 +291,12 @@
 @keyframes dialog-in { from { transform: translate(-50%, -48%) scale(0.98); opacity: 0; } to { transform: translate(-50%, -50%); opacity: 1; } }
 @keyframes dialog-out { from { transform: translate(-50%, -50%); opacity: 1; } to { transform: translate(-50%, -48%) scale(0.98); opacity: 0; } }
 
+/* The command palette sits near the top, not centered. */
+@keyframes palette-in { from { transform: translate(-50%, -8px) scale(0.98); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+@keyframes palette-out { from { opacity: 1; } to { transform: translate(-50%, -4px) scale(0.99); opacity: 0; } }
+.anim-dialog.anim-palette[data-state="open"] { animation: palette-in 220ms var(--ease-out-expo); }
+.anim-dialog.anim-palette[data-state="closed"] { animation: palette-out 120ms ease-in; }
+
 .anim-overlay[data-state="open"] { animation: overlay-in 200ms var(--ease-out-quint); }
 .anim-overlay[data-state="closed"] { animation: overlay-out 160ms ease-in; }
 .anim-sheet-right[data-state="open"] { animation: sheet-in-right 320ms var(--ease-out-expo); }

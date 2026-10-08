@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarCheck, History, LogOut, MessagesSquare, Monitor, Moon, Settings, Sparkles, Sun } from "lucide-react";
+import { BarChart3, CalendarCheck, History, LogOut, MessagesSquare, Monitor, Moon, Settings, Sparkles, Sun } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/ui/brand";
@@ -51,6 +51,11 @@ export function UserMenu({ user }: { user: MenuUser }) {
         <MenuItem asChild>
           <Link href="/today">
             <CalendarCheck /> Today
+          </Link>
+        </MenuItem>
+        <MenuItem asChild>
+          <Link href="/insights">
+            <BarChart3 /> Insights
           </Link>
         </MenuItem>
         <MenuItem asChild>
