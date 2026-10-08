@@ -2,7 +2,6 @@ import "server-only";
 import { NextResponse } from "next/server";
 import type { z } from "zod";
 import { getSession } from "@/lib/auth/session";
-import { isDatabaseConfigured } from "@/lib/db/env";
 
 export function jsonError(status: number, message: string) {
   return NextResponse.json({ error: message }, { status });
@@ -10,7 +9,6 @@ export function jsonError(status: number, message: string) {
 
 /** Resolve the signed-in user or produce the response to return instead. */
 export async function requireUser() {
-  if (!isDatabaseConfigured()) return { error: jsonError(503, "Service not configured") } as const;
   const { user } = await getSession();
   if (!user) return { error: jsonError(401, "Not signed in") } as const;
   return { user } as const;

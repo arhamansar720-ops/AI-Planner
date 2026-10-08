@@ -28,8 +28,10 @@ Free-plan notes: a free web service sleeps after 15 minutes without visitors and
 ## Run locally
 
 1. `npm install`, then `cp .env.example .env.local`.
-2. Point `DATABASE_URL` at any Postgres 13+ database (a local one, or a Render database's *external* URL).
+2. Optional: point `DATABASE_URL` at any Postgres 13+ database (a local one, a Render database's *external* URL, or Supabase's session pooler URL). Without it, the app uses its built-in database (below).
 3. `npm run db:migrate` to apply the schema (`npm start` also does this), then `npm run dev`.
+
+**No database? It still runs.** When `DATABASE_URL` isn't set, the server starts a Postgres built into the app ([PGlite](https://pglite.dev), `lib/db/embedded.ts`), applies the same migrations and creates the test account, so you can sign in as `admin@forma.com` / `Admin123!` right away. This works on Vercel too. Data is kept in `.data/forma-db` locally. On serverless hosts it's kept in `/tmp`, so it lasts only as long as a server instance, and different instances don't share it. Sessions in this mode are signed cookies, so you stay signed in anyway. The login page says it's demo mode. Set `DATABASE_URL` for real use. Set `AUTH_SECRET` to a long random string to sign those cookies with a private key.
 
 | Script | What it does |
 | --- | --- |
@@ -98,7 +100,7 @@ The deterministic engine in `lib/planning/schedule.ts` handles everything derive
 
 ### Data
 
-Plain Postgres (Render Postgres in production), schema in `db/migrations`, applied by `scripts/migrate.mjs` on start. Every table carries `user_id`, and every query in `lib/db/` is scoped to the signed-in user (tested: one account can't read, change or delete another's plans or chats). Tables: `users`, `oauth_accounts`, `sessions`, `password_resets`, `user_preferences`, `plans`, `phases`, `tasks`, `milestones`, `resources`, `schedule_items`, `conversations`, `messages`. A plan is written atomically by the `save_plan(user, plan)` function.
+Plain Postgres (Render Postgres in production, or the built-in PGlite fallback when `DATABASE_URL` is unset), schema in `db/migrations`, applied by `scripts/migrate.mjs` on start. Every table carries `user_id`, and every query in `lib/db/` is scoped to the signed-in user (tested: one account can't read, change or delete another's plans or chats). Tables: `users`, `oauth_accounts`, `sessions`, `password_resets`, `user_preferences`, `plans`, `phases`, `tasks`, `milestones`, `resources`, `schedule_items`, `conversations`, `messages`. A plan is written atomically by the `save_plan(user, plan)` function.
 
 **Auth** (`lib/auth/`): passwords are hashed with scrypt; sessions are random tokens in an HttpOnly cookie, stored only as SHA-256 hashes and revocable (signing out deletes the session; a password reset signs out everywhere). Google and Microsoft use OAuth with PKCE and state (`/auth/oauth/[provider]` → `/auth/callback/[provider]`). A Google account links to an existing account only when Google has verified the email. Sign-in, sign-up and reset requests are rate-limited.
 

@@ -7,7 +7,6 @@ import { ModesShowcase } from "@/components/landing/showcases";
 import { Story, WorksWith } from "@/components/landing/story";
 import { getSession } from "@/lib/auth/session";
 import { product } from "@/lib/config";
-import { isDatabaseConfigured } from "@/lib/db/env";
 
 export const metadata: Metadata = {
   title: { absolute: `${product.name} · ${product.tagline}` },
@@ -15,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 export default async function HomePage() {
-  const signedIn = isDatabaseConfigured() ? Boolean((await getSession()).user) : false;
+  const signedIn = Boolean((await getSession()).user);
   return (
     <>
       <Hero signedIn={signedIn} />

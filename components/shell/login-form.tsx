@@ -23,6 +23,7 @@ export function LoginForm({
   providers,
   canReset,
   demoAccount,
+  temporaryData = false,
 }: {
   next: string;
   initialError: string | null;
@@ -30,6 +31,8 @@ export function LoginForm({
   providers: Record<Provider, boolean>;
   canReset: boolean;
   demoAccount: { email: string; password: string | null } | null;
+  /** Running on the built-in database: accounts and plans may be reset. */
+  temporaryData?: boolean;
 }) {
   const [mode, setMode] = useState<Mode>(initialMode);
   const [email, setEmail] = useState("");
@@ -220,6 +223,11 @@ export function LoginForm({
                     {mode === "signin" ? "Sign in" : mode === "signup" ? "Create account" : "Send reset link"}
                   </Button>
                 </form>
+                {temporaryData && mode !== "forgot" && (
+                  <p className="mt-5 text-center text-xs leading-relaxed text-fg-subtle">
+                    Demo mode: this site has no database connected yet, so accounts and plans are temporary.
+                  </p>
+                )}
                 {mode === "signin" && demoAccount && (
                   <p className="mt-5 rounded-xl border border-dashed border-border-strong px-3 py-2.5 text-center text-xs leading-relaxed text-fg-muted">
                     Testing? Use{" "}
