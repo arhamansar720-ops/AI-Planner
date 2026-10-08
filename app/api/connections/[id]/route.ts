@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { fetchFeed, FeedError } from "@/lib/connections/feed";
-import { describeEvents, parseIcs, upcoming } from "@/lib/connections/ics";
+import { FeedError } from "@/lib/connections/feed";
+import { describeEvents } from "@/lib/connections/ics";
 import { getProvider } from "@/lib/connections/providers";
-import { readConnections, writeConnections } from "@/lib/connections/store";
+import { readConnectionEvents, readConnections, writeConnections } from "@/lib/connections/store";
+import { TweekError } from "@/lib/connections/tweek";
 import { localToday } from "@/lib/planning/dates";
 import { jsonError, requireUser } from "@/lib/utils/api";
 
@@ -16,11 +17,11 @@ export async function GET(_request: Request, { params }: Context) {
   const connection = readConnections(auth.user).find((c) => c.id === id);
   if (!connection) return jsonError(404, "Not found");
   try {
-    const events = upcoming(parseIcs(await fetchFeed(connection.url)), localToday());
+    const events = await readConnectionEvents(connection, localToday());
     const name = getProvider(connection.provider)?.name ?? "your calendar";
     return NextResponse.json({ events, summary: describeEvents(name, events) });
   } catch (error) {
-    if (error instanceof FeedError) return jsonError(422, error.message);
+    if (error instanceof FeedError || error instanceof TweekError) return jsonError(422, error.message);
     console.error("[connections] read failed", { error });
     return jsonError(500, "Couldn’t read that calendar.");
   }

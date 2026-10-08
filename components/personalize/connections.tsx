@@ -88,7 +88,7 @@ export function ConnectionsSection({ initial }: { initial: PublicConnection[] })
                       </Button>
                     )}
                     <Button variant="ghost" size="sm" onClick={() => setActive(p)}>
-                      {p.kind === "paste" ? "Update" : "Change link"}
+                      {p.kind === "paste" ? "Update" : p.kind === "token" ? "Change key" : "Change link"}
                     </Button>
                     <Button
                       variant="ghost"
@@ -201,7 +201,7 @@ function ConnectDialog({
     }).catch(() => null);
     setBusy(false);
     const data = res ? ((await res.json().catch(() => ({}))) as { connection?: PublicConnection; preview?: FeedEvent[]; error?: string }) : {};
-    if (!res?.ok || !data.connection) return setError(data.error ?? "Couldn’t connect. Check the link and try again.");
+    if (!res?.ok || !data.connection) return setError(data.error ?? (provider.kind === "token" ? "Couldn’t connect. Check the key and try again." : "Couldn’t connect. Check the link and try again."));
     toast({ message: `${provider.name} connected` });
     onConnected(data.connection, data.preview ?? []);
     close();
@@ -249,9 +249,9 @@ function ConnectDialog({
                   autoFocus
                   value={value}
                   onChange={(e) => setValue(e.target.value)}
-                  placeholder="https://… or webcal://…"
-                  inputMode="url"
-                  aria-label={`${provider.name} calendar link`}
+                  {...(provider.kind === "token"
+                    ? { type: "password", placeholder: "Your Tweek API key", autoComplete: "off", "aria-label": `${provider.name} API key` }
+                    : { placeholder: "https://… or webcal://…", inputMode: "url" as const, "aria-label": `${provider.name} calendar link` })}
                 />
               )}
               <AnimatePresence>
@@ -269,7 +269,7 @@ function ConnectDialog({
               </AnimatePresence>
               <div className="flex items-center justify-between gap-3">
                 <p className="text-[11.5px] leading-snug text-fg-subtle">
-                  {provider.kind === "paste" ? "Stays on this device." : "Read-only. Forma never changes your calendar."}
+                  {provider.kind === "paste" ? "Stays on this device." : provider.kind === "token" ? "Read-only. Kept with your account, never shown again." : "Read-only. Forma never changes your calendar."}
                 </p>
                 <Button type="submit" variant="primary" loading={busy} disabled={!value.trim()}>
                   {provider.kind === "paste" ? "Save" : "Connect"}

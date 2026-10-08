@@ -163,6 +163,7 @@ Read-only, with no third-party API keys:
 
 - **Calendar feeds:** Schoology, Canvas, Outlook, Google Calendar and Apple Calendar can all publish a private iCal link. Forma stores the link on the account and reads upcoming items from it on the server (`lib/connections/`). The fetcher accepts only HTTPS, checks every resolved address inside the connection's own DNS lookup so it can't be pointed at private networks, follows at most three redirects and caps size and time.
 - **Skyward** has no public feed, so its assignments page is pasted and kept on the device.
+- **Tweek** is read through [its API](https://tweek.so/docs/api) with a personal API key (sent as `X-API-Key`), stored with the account and never sent back to the browser. Forma lists the calendars, then the dated, unfinished tasks for the next ten weeks (`lib/connections/tweek.ts`). Read-only.
 - **Using them:** in the prompt box, *Add context → Connected tools* attaches upcoming deadlines to a new plan.
 - **The other direction:** every plan has *Add to calendar* (`/api/plans/[id]/calendar`), an .ics file for Outlook, Google or Apple Calendar.
 

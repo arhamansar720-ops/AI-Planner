@@ -1,7 +1,8 @@
 /**
  * Tools Forma can read from. Most school and calendar apps can publish a
  * private calendar link (iCal); Forma reads upcoming items from it. Skyward
- * has no public feed, so its page is pasted instead.
+ * has no public feed, so its page is pasted instead. Tweek is read through
+ * its API with a personal key.
  */
 export const PROVIDERS = [
   {
@@ -72,15 +73,29 @@ export const PROVIDERS = [
       "Paste the link below.",
     ],
   },
+  {
+    id: "tweek",
+    name: "Tweek",
+    kind: "token",
+    color: "#1f1f1f",
+    blurb: "Tasks from your Tweek weekly planner",
+    steps: [
+      "In Tweek, open Settings and find the API section (tweek.so/calendar/api).",
+      "Create a personal API key and copy it.",
+      "Paste the key below. Forma only reads your tasks.",
+    ],
+  },
 ] as const;
 
 export type Provider = (typeof PROVIDERS)[number];
 export type ProviderId = Provider["id"];
 export const FEED_PROVIDER_IDS = PROVIDERS.filter((p) => p.kind === "feed").map((p) => p.id) as [ProviderId, ...ProviderId[]];
+/** Providers stored on the account: calendar feeds and API-key connections. */
+export const SERVER_PROVIDER_IDS = PROVIDERS.filter((p) => p.kind !== "paste").map((p) => p.id) as [ProviderId, ...ProviderId[]];
 
 export function getProvider(id: string) {
   return PROVIDERS.find((p) => p.id === id) ?? null;
 }
 
 /** A connected calendar feed, stored on the account (users.connections). */
-export type StoredConnection = { id: string; provider: ProviderId; url: string; addedAt: string };
+export type StoredConnection = { id: string; provider: ProviderId; url: string; addedAt: string; /** API key, for "token" providers. */ token?: string };

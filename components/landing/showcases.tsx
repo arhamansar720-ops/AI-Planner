@@ -224,7 +224,8 @@ export function VoiceVisual() {
 export function ConnectionsVisual() {
   return (
     <div className="glass relative overflow-hidden rounded-[28px] p-6">
-      <div className="grid grid-cols-3 gap-3">
+      {/* Flex rather than grid so a short last row sits centered. */}
+      <div className="flex flex-wrap justify-center gap-3">
         {PROVIDERS.map((p, i) => (
           <motion.div
             key={p.id}
@@ -233,7 +234,7 @@ export function ConnectionsVisual() {
             viewport={{ once: true }}
             transition={{ type: "spring", stiffness: 260, damping: 20, delay: i * 0.06 }}
             whileHover={{ y: -4 }}
-            className="flex flex-col items-center gap-2 rounded-2xl border border-border bg-surface px-2 py-4 shadow-xs"
+            className="flex w-[calc((100%-1.5rem)/3)] flex-col items-center gap-2 rounded-2xl border border-border bg-surface px-2 py-4 shadow-xs"
           >
             <ProviderLogo id={p.id} size={44} />
             <span className="text-center text-[12.5px] font-medium leading-tight">{p.name}</span>

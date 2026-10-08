@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils/cn";
 /**
  * App-icon style marks for the tools Forma connects to, drawn as inline SVG
  * (no network requests, crisp at any size, fine in dark mode). The Canvas and
- * Google Calendar glyphs come from Simple Icons (CC0); the others are drawn
+ * Google Calendar glyphs come from Simple Icons (CC0); the others (including Tweek) are drawn
  * here after each product's app icon. Names and logos belong to their owners
  * and are shown only to say which tools work with Forma.
  */
@@ -34,6 +34,7 @@ const MARKS: Record<ProviderId, (props: MarkProps) => React.ReactElement> = {
   outlook: Outlook,
   google: GoogleCalendar,
   apple: AppleCalendar,
+  tweek: Tweek,
 };
 
 /** Schoology: a white "s" in a blue circle. */
@@ -130,6 +131,19 @@ function AppleCalendar() {
       <text x="20" y="32" textAnchor="middle" fontSize="19" fontWeight="300" fill="#1c1c1e" fontFamily="-apple-system, system-ui, sans-serif">
         17
       </text>
+    </>
+  );
+}
+
+/** Tweek: a black tile with a "T" over the seven days of the week. */
+function Tweek() {
+  return (
+    <>
+      <rect width="40" height="40" fill="#111111" />
+      <path d="M12 10.5h16v3.6h-6.1V25h-3.8V14.1H12z" fill="#ffffff" />
+      {[0, 1, 2, 3, 4, 5, 6].map((i) => (
+        <circle key={i} cx={11 + i * 3} cy="30.5" r="1.05" fill="#ffffff" opacity={i === 2 ? 1 : 0.45} />
+      ))}
     </>
   );
 }
