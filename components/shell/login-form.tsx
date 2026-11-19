@@ -147,10 +147,17 @@ export function LoginForm({
                         { value: "signup", label: "Create account" },
                       ]}
                     />
-                    <div className="mt-6 flex flex-col gap-2.5">
-                      <OAuthButton provider="google" loading={loading === "google"} disabled={loading !== null} enabled={providers.google} onClick={() => oauth("google")} />
-                      <OAuthButton provider="microsoft" loading={loading === "microsoft"} disabled={loading !== null} enabled={providers.microsoft} onClick={() => oauth("microsoft")} />
-                    </div>
+                    {/* Only providers with credentials configured get a button. */}
+                    {anyProvider && (
+                      <div className="mt-6 flex flex-col gap-2.5">
+                        {providers.google && (
+                          <OAuthButton provider="google" loading={loading === "google"} disabled={loading !== null} enabled onClick={() => oauth("google")} />
+                        )}
+                        {providers.microsoft && (
+                          <OAuthButton provider="microsoft" loading={loading === "microsoft"} disabled={loading !== null} enabled onClick={() => oauth("microsoft")} />
+                        )}
+                      </div>
+                    )}
                     <div className="my-6 flex items-center gap-3 text-xs text-fg-subtle" aria-hidden>
                       <span className="h-px flex-1 bg-border" />
                       {anyProvider ? "or with email" : "with email"}
